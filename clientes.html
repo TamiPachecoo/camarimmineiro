@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clientes — Camarim Mineiro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3A7A6C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camarim Mineiro">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CAMARIM MINEIRO — Sistema de design
+   Estrutura inspirada no Vicaf (superfícies em camadas, raio
+   generoso, PIN por teclado, toasts) — em tom marfim/verde-água/
+   dourado, com Cormorant Garamond + Montserrat da marca.
+   ============================================================ */
+
+:root {
+  --bg: #FAF6EF;
+  --surface: #FFFFFF;
+  --surface2: #F4EBDC;
+  --surface3: #EDE1CC;
+  --border: #E6D9C2;
+  --teal: #4F9A89;
+  --teal-dim: #E4F1EC;
+  --teal-deep: #3A7A6C;
+  --gold: #B98C55;
+  --gold-dim: #F5E9D6;
+  --ink: #2C2620;
+  --ink2: #8C8072;
+  --ink3: #B8AC9B;
+  --red: #B3564A;
+  --red-dim: #F6E2DF;
+  --white: #FFFFFF;
+  --radius: 18px;
+  --radius-sm: 11px;
+  --shadow: 0 1px 3px rgba(44, 38, 32, 0.05);
+  --shadow-card: 0 18px 40px -18px rgba(44, 38, 32, 0.22);
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mono { font-family: 'DM Mono', monospace; }
+
+.subtitulo {
+  color: var(--ink2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1.6rem;
+}
+
+.oculto { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================
+   MARCA
+   ============================================================ */
+.diamante { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+.marca-diamante {
+  width: 40px; height: 40px;
+  background: var(--teal);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 0.8rem;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  flex-shrink: 0;
+}
+
+.marca-lockup { text-align: center; margin-bottom: 1.6rem; }
+.marca-lockup .marca-diamante { width: 64px; height: 64px; font-size: 1.15rem; margin: 0 auto 0.85rem; box-shadow: var(--shadow-card); }
+.marca-lockup .marca-wordmark {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink);
+}
+
+/* ============================================================
+   TELA CHEIA / CARD DE AUTENTICAÇÃO
+   ============================================================ */
+.tela-cheia {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem 2.25rem;
+  width: 100%; max-width: 400px;
+  text-align: center;
+}
+
+.cartao h1 { font-size: 1.9rem; }
+
+form { display: flex; flex-direction: column; text-align: left; gap: 0.25rem; }
+
+label { font-size: 0.76rem; font-weight: 600; color: var(--ink2); margin-top: 0.85rem; }
+
+input, select, textarea {
+  font-family: 'Montserrat', sans-serif;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--surface2);
+  color: var(--ink);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+input::placeholder { color: var(--ink3); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--teal); background: var(--white); box-shadow: 0 0 0 3px var(--teal-dim);
+}
+
+.botao-principal {
+  margin-top: 1.5rem; padding: 0.85rem;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--teal-deep); color: var(--white);
+  font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  transition: background var(--transition), transform 120ms;
+}
+.botao-principal:hover { background: var(--teal); }
+.botao-principal:active { transform: scale(0.98); }
+.botao-principal:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.botao-texto {
+  background: none; border: none; color: var(--ink2);
+  font-size: 0.83rem; cursor: pointer; margin-top: 0.8rem; text-decoration: underline;
+}
+.botao-texto:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.erro { color: var(--red); font-size: 0.83rem; min-height: 1.2em; margin-top: 0.55rem; }
+
+.lista-perfis { display: flex; flex-direction: column; gap: 0.6rem; }
+.botao-perfil {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.85rem 1.05rem;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--ink);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+.botao-perfil::before {
+  content: ''; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.botao-perfil:hover { border-color: var(--teal); background: var(--white); transform: translateX(2px); }
+
+/* ============================================================
+   PIN — teclado numérico
+   ============================================================ */
+.pin-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 0.9rem;
+}
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 1.4rem 0 1.6rem; }
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all 120ms;
+}
+.pin-dot.preenchido { background: var(--teal-deep); border-color: var(--teal-deep); }
+.pin-dot.erro { background: var(--red); border-color: var(--red); }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 0.5rem; }
+.pin-key {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 15px 0;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 600;
+  cursor: pointer; color: var(--ink); transition: all 100ms;
+}
+.pin-key:active { transform: scale(0.94); background: var(--teal-dim); border-color: var(--teal); }
+.pin-key.apagar { font-size: 1rem; font-family: 'Montserrat', sans-serif; color: var(--ink2); }
+.pin-key.vazio { background: transparent; border-color: transparent; cursor: default; }
+.pin-keypad[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
+
+/* ============================================================
+   APP PRINCIPAL
+   ============================================================ */
+.tela-app { min-height: 100vh; }
+
+.cabecalho-app {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.05rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.marca-horizontal { display: flex; align-items: center; gap: 0.65rem; }
+.marca-diamante-pequena { width: 32px; height: 32px; font-size: 0.65rem; }
+.marca-nome {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink);
+}
+
+.nav-app { display: flex; gap: 0.4rem; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); }
+.nav-link {
+  font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-decoration: none;
+  padding: 0.5rem 1.1rem; border-radius: 8px; transition: all var(--transition);
+}
+.nav-link.ativo { color: var(--white); background: var(--teal-deep); }
+.nav-link:hover:not(.ativo) { color: var(--ink); }
+
+.usuario-ativo { display: flex; align-items: center; gap: 1.1rem; font-size: 0.85rem; color: var(--ink2); }
+.usuario-ativo #nome-usuario-ativo { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--ink); }
+
+.conteudo-principal { max-width: 1100px; margin: 0 auto; padding: 2.6rem 2rem 4rem; }
+
+.barra-acoes { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.3rem; }
+.barra-acoes h1 { font-size: 2rem; }
+.botao-pequeno { margin-top: 0; width: auto; padding: 0.68rem 1.3rem; }
+
+.filtros {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 1.6rem 0 2rem;
+  background: var(--surface2); padding: 5px; border-radius: var(--radius-sm); width: fit-content;
+}
+.filtro {
+  padding: 0.42rem 1rem; border-radius: 8px; border: none;
+  background: transparent; color: var(--ink2);
+  font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.filtro.ativo { background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+.filtro:hover:not(.ativo) { color: var(--ink); }
+
+.lista-clientes { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.cartao-cliente {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.35rem 1.45rem; cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+}
+.cartao-cliente:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-2px); }
+
+.cartao-cliente-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.6rem; }
+.cartao-cliente-topo h3 { font-size: 1.25rem; font-weight: 600; }
+.cartao-cliente-info { font-size: 0.83rem; color: var(--ink2); margin: 0.28rem 0; }
+
+.etiqueta {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+}
+.etiqueta::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.etiqueta-contato { color: #8A7F6E; background: #F1ECE3; }
+.etiqueta-orcamento { color: #96702F; background: #F3E7D2; }
+.etiqueta-confirmada { color: var(--teal-deep); background: var(--teal-dim); }
+.etiqueta-concluida { color: var(--white); background: var(--teal-deep); }
+.etiqueta-cancelada { color: var(--red); background: var(--red-dim); }
+
+.estado-vazio { grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--ink2); }
+.estado-vazio .marca-diamante { width: 38px; height: 38px; margin: 0 auto 1.1rem; opacity: 0.6; }
+.estado-vazio p { font-size: 0.9rem; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-fundo {
+  position: fixed; inset: 0; background: rgba(44, 38, 32, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 100;
+}
+.modal-caixa {
+  background: var(--surface); border-radius: var(--radius); padding: 1.9rem 2.1rem 2.1rem;
+  width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-card);
+}
+.modal-cabecalho { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem; padding-bottom: 1.05rem; border-bottom: 1px solid var(--border); }
+.modal-cabecalho h2 { font-size: 1.5rem; }
+.botao-fechar { background: var(--surface2); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1.1rem; color: var(--ink2); cursor: pointer; }
+.botao-fechar:hover { color: var(--ink); }
+
+.linha-form { display: flex; gap: 1rem; }
+.campo-form { flex: 1; }
+textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
+
+.modal-rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.05rem; border-top: 1px solid var(--border); }
+.modal-rodape .botao-principal { margin-top: 0; }
+#botao-excluir-cliente { color: var(--red); margin-top: 0; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--white);
+  border-radius: 999px; padding: 0.7rem 1.3rem; font-size: 0.85rem; font-weight: 500;
+  z-index: 300; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap; box-shadow: var(--shadow-card);
+}
+.toast.mostrar { transform: translateX(-50%) translateY(0); }
+.toast.sucesso { background: var(--teal-deep); }
+.toast.erro { background: var(--red); }
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+@media (max-width: 860px) {
+  .cabecalho-app { flex-wrap: wrap; gap: 0.85rem; padding: 1rem 1.25rem; }
+  .nav-app { order: 3; width: 100%; justify-content: space-between; }
+  .conteudo-principal { padding: 2rem 1.25rem 3rem; }
+}
+@media (max-width: 480px) {
+  .cartao { padding: 2.1rem 1.5rem; }
+  .linha-form { flex-direction: column; gap: 0; }
+  .barra-acoes { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+  .pin-keypad { gap: 8px; }
+}
+
+/* ============================================================
+   MENU PRINCIPAL (HUB) — Agenda / Clientes / Financeiro
+   ============================================================ */
+.menu-hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem;
+  max-width: 900px;
+  margin: 1rem auto 0;
+}
+.cartao-hub {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.6rem;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+  font-family: 'Montserrat', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.cartao-hub:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-3px); }
+.cartao-hub-icone {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+}
+.cartao-hub h2 { font-size: 1.4rem; }
+.cartao-hub p { font-size: 0.85rem; color: var(--ink2); margin: 0; line-height: 1.5; }
+
+.saudacao-hub { text-align: center; margin-bottom: 0.5rem; }
+.saudacao-hub .rotulo-eyebrow-simples { font-size: 0.75rem; color: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; }
+.saudacao-hub h1 { font-size: 2.1rem; margin-top: 0.3rem; }
+
+.sub-tela { }
+.sub-tela.oculto { display: none !important; }
+
+.botao-voltar-menu {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--ink2);
+  background: none; border: none; cursor: pointer; margin-bottom: 1.2rem;
+  padding: 0;
+}
+.botao-voltar-menu:hover { color: var(--ink); }
+
+.placeholder-secao {
+  text-align: center;
+  padding: 4.5rem 1rem;
+  color: var(--ink2);
+}
+.placeholder-secao .marca-diamante { width: 44px; height: 44px; margin: 0 auto 1.2rem; opacity: 0.55; }
+.placeholder-secao h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--ink); }
+.placeholder-secao p { font-size: 0.88rem; max-width: 340px; margin: 0 auto; }
+
+/* ============================================================
+   CATÁLOGO DE SERVIÇOS (Financeiro)
+   ============================================================ */
+.lista-servicos { display: flex; flex-direction: column; gap: 0.6rem; }
+.linha-servico {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; cursor: pointer; transition: border-color var(--transition);
+}
+.linha-servico:hover { border-color: var(--teal); }
+.linha-servico.inativo { opacity: 0.5; }
+.linha-servico-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; }
+.linha-servico-direita { display: flex; align-items: center; gap: 0.9rem; }
+.linha-servico-valor { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--teal-deep); font-weight: 500; }
+.etiqueta-inativo { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--ink3); background: var(--surface2); padding: 0.2rem 0.55rem; border-radius: 999px; }
+
+/* checklist de serviços no formulário de cliente */
+.lista-servicos-checklist { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.4rem; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem; background: var(--surface2); }
+.item-servico-checklist { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.3rem; font-size: 0.88rem; }
+.item-servico-checklist input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.item-servico-checklist label { flex: 1; margin: 0; font-size: 0.88rem; font-weight: 400; color: var(--ink); text-transform: none; letter-spacing: 0; cursor: pointer; }
+.item-servico-checklist .valor-servico-checklist { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--ink2); }
+.total-servicos-selecionados {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 600;
+}
+.total-servicos-selecionados .valor-total { font-family: 'DM Mono', monospace; color: var(--teal-deep); font-size: 1.05rem; }
+
+/* responsável: Tami / Ste / Outra */
+.opcoes-responsavel { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.opcao-responsavel {
+  flex: 1; padding: 0.55rem 0.4rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-responsavel.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+
+.opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
+.opcao-tipo-cliente {
+  flex: 1; padding: 0.7rem 0.5rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-tipo-cliente.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+.grupo-fornecedores {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; margin-top: 0.6rem;
+}
+.grupo-fornecedores .rotulo-eyebrow-simples { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); display: block; margin-bottom: 0.6rem; }
+
+/* seção de pagamento no evento */
+.secao-pagamento {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem; margin-top: 1rem;
+}
+.secao-pagamento-titulo { font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.7rem; }
+.linha-pagamento-sinal {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.85rem; color: var(--ink); background: var(--surface); border-radius: 8px;
+  padding: 0.55rem 0.8rem; margin-bottom: 0.7rem;
+}
+.linha-pagamento-sinal .valor-sinal-destaque { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+.check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
+.campo-metodo-pagamento { margin-left: 24px; margin-bottom: 0.6rem; }
+.campo-metodo-pagamento select { width: 100%; }
+</style>
+</head>
+<body>
+
+<header class="cabecalho-app">
+  <div class="marca marca-horizontal">
+    <div class="marca-diamante marca-diamante-pequena">CM</div>
+    <span class="marca-nome">Camarim Mineiro</span>
+  </div>
+  <nav class="nav-app">
+    <a href="index.html" class="nav-link">Menu</a>
+    <a href="agenda.html" class="nav-link">Agenda</a>
+    <a href="clientes.html" class="nav-link ativo">Clientes</a>
+    <a href="financeiro.html" class="nav-link">Financeiro</a>
+  </nav>
+  <div class="usuario-ativo">
+    <span id="nome-usuario-ativo"></span>
+    <button class="botao-texto" id="botao-trocar-perfil">Trocar</button>
+    <button class="botao-texto" id="botao-sair">Sair</button>
+  </div>
+</header>
+
+<main class="conteudo-principal">
+  <div class="barra-acoes">
+    <h1>Clientes</h1>
+    <button class="botao-principal botao-pequeno" id="botao-nova-cliente">+ Nova cliente</button>
+  </div>
+  <p class="subtitulo">Acompanhe cada cliente, do primeiro contato à conclusão.</p>
+  <div class="filtros" id="filtros-status">
+    <button class="filtro ativo" data-status="todos">Todas</button>
+    <button class="filtro" data-status="contato">Contato</button>
+    <button class="filtro" data-status="orcamento">Orçamento</button>
+    <button class="filtro" data-status="confirmada">Confirmada</button>
+    <button class="filtro" data-status="concluida">Concluída</button>
+    <button class="filtro" data-status="cancelada">Cancelada</button>
+  </div>
+  <div class="lista-clientes" id="lista-clientes">
+    <p class="subtitulo">Carregando...</p>
+  </div>
+</main>
+
+<div class="modal-fundo oculto" id="modal-cliente">
+  <div class="modal-caixa">
+    <div class="modal-cabecalho">
+      <h2 id="modal-titulo">Nova cliente</h2>
+      <button class="botao-fechar" id="botao-fechar-modal">×</button>
+    </div>
+    <form id="form-cliente">
+      <input type="hidden" id="cliente-id">
+
+      <label>Tipo de cliente</label>
+      <div class="opcoes-tipo-cliente">
+        <div class="opcao-tipo-cliente" data-tipo="noiva">Noiva</div>
+        <div class="opcao-tipo-cliente" data-tipo="social">Social</div>
+        <div class="opcao-tipo-cliente" data-tipo="empresa">Empresa</div>
+      </div>
+
+      <label for="nome_noiva" id="rotulo-nome-cliente">Nome do cliente *</label>
+      <input type="text" id="nome_noiva" required>
+
+      <label for="whatsapp">WhatsApp</label>
+      <input type="text" id="whatsapp" placeholder="+55 31 9....">
+
+      <label for="email">E-mail</label>
+      <input type="email" id="email">
+
+      <label for="endereco">Endereço</label>
+      <input type="text" id="endereco" placeholder="Endereço">
+
+      <!-- ===== CAMPOS: NOIVA ===== -->
+      <div id="campos-noiva">
+        <label for="nome_parceiro">Nome do(a) parceiro(a)</label>
+        <input type="text" id="nome_parceiro">
+
+        <div class="linha-form">
+          <div class="campo-form">
+            <label for="data_casamento">Data do casamento</label>
+            <input type="date" id="data_casamento">
+          </div>
+          <div class="campo-form">
+            <label for="idioma">Idioma</label>
+            <select id="idioma">
+              <option value="pt">Português</option>
+              <option value="en">Inglês</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="local_evento">Local do evento</label>
+        <input type="text" id="local_evento">
+
+        <div class="grupo-fornecedores">
+          <span class="rotulo-eyebrow-simples">Fornecedores do casamento (Instagram ou nome)</span>
+          <label for="fornecedor_fotografo">Fotógrafo(a)</label>
+          <input type="text" id="fornecedor_fotografo" placeholder="@fotografo">
+          <label for="fornecedor_buffet">Buffet</label>
+          <input type="text" id="fornecedor_buffet" placeholder="@buffet">
+          <label for="fornecedor_cerimonial">Cerimonial</label>
+          <input type="text" id="fornecedor_cerimonial" placeholder="@cerimonialista">
+          <label for="fornecedor_vestido">Vestido</label>
+          <input type="text" id="fornecedor_vestido" placeholder="@ateliedevestidos">
+          <label for="fornecedor_video">Vídeo</label>
+          <input type="text" id="fornecedor_video" placeholder="@videomaker">
+        </div>
+      </div>
+
+      <!-- ===== CAMPOS: SOCIAL ===== -->
+      <div id="campos-social" class="oculto">
+        <label for="redes_sociais">Redes sociais (opcional)</label>
+        <input type="text" id="redes_sociais" placeholder="@instagram">
+      </div>
+
+      <!-- ===== CAMPOS: EMPRESA ===== -->
+      <div id="campos-empresa" class="oculto">
+        <label for="contato_nome">Nome do contato</label>
+        <input type="text" id="contato_nome" placeholder="Pessoa de contato na empresa">
+        <div class="linha-form">
+          <div class="campo-form">
+            <label for="cnpj">CNPJ</label>
+            <input type="text" id="cnpj" placeholder="00.000.000/0000-00">
+          </div>
+          <div class="campo-form">
+            <label for="inscricao_estadual">Inscrição Estadual</label>
+            <input type="text" id="inscricao_estadual" placeholder="Para emissão de Nota Fiscal">
+          </div>
+        </div>
+      </div>
+
+      <label for="status">Status</label>
+      <select id="status">
+        <option value="contato">Contato</option>
+        <option value="orcamento">Orçamento</option>
+        <option value="confirmada">Confirmada</option>
+        <option value="concluida">Concluída</option>
+        <option value="cancelada">Cancelada</option>
+      </select>
+
+      <label>Responsável</label>
+      <div class="opcoes-responsavel">
+        <div class="opcao-responsavel" data-valor="Tami">Tami</div>
+        <div class="opcao-responsavel" data-valor="Stefania">Stefania</div>
+        <div class="opcao-responsavel" data-valor="Outra">Outra</div>
+      </div>
+      <input type="text" id="campo-responsavel-outra" placeholder="Nome de quem vai atender" class="oculto" style="margin-top:0.5rem">
+
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" rows="3"></textarea>
+
+      <div id="secao-servicos">
+        <label>Serviços contratados</label>
+        <div class="lista-servicos-checklist" id="lista-servicos-checklist">
+          <p class="subtitulo" style="margin:0.3rem 0 0">Carregando...</p>
+        </div>
+        <div class="total-servicos-selecionados">
+          <span>Total</span>
+          <span class="valor-total" id="valor-total-servicos">R$ 0.00</span>
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button type="button" class="botao-texto" id="botao-excluir-cliente">Excluir</button>
+        <button type="submit" class="botao-principal">Salvar</button>
+      </div>
+      <p class="erro" id="erro-cliente"></p>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CLIENTE SUPABASE
+// Substitua os valores abaixo pelos do seu projeto:
+// Supabase Dashboard → Project Settings → API
+// - Project URL
+// - anon public key (NÃO é a service_role — essa nunca vai no frontend)
+// ============================================================
+
+const SUPABASE_URL = 'https://llhccvbovuzifsikvekz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsaGNjdmJvdnV6aWZzaWt2ZWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTY0MzIsImV4cCI6MjA5ODQ5MjQzMn0.9PCEjmF8R_MxVh24XOngaY7ZwyYGOEMcyDKDtpkPPUY';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ============================================================
+// AUTENTICAÇÃO
+// Fluxo:
+// 1. Login único compartilhado (Supabase Auth)
+// 2. Seleção de perfil (Tami / Stefania) + PIN — identificação leve,
+//    guardada em localStorage. Não é uma camada de segurança real,
+//    serve só para saber quem criou/editou cada registro.
+// ============================================================
+
+const STORAGE_KEY = 'camarim_perfil_ativo';
+
+// ---- Hash simples do PIN (SHA-256) — suficiente para identificação, não é senha ----
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ---- Sessão Supabase ----
+async function getSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data.session;
+}
+
+async function signIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signOutCompleto() {
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Perfil ativo (Tami / Stefania) ----
+function getPerfilAtivo() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+function setPerfilAtivo(perfil) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: perfil.id, nome: perfil.nome }));
+}
+
+function trocarPerfil() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Buscar perfis existentes ----
+async function buscarPerfis() {
+  const { data, error } = await supabaseClient.from('perfis').select('id, nome, pin_hash');
+  if (error) throw error;
+  return data;
+}
+
+// ---- Criar um novo perfil (primeiro acesso) ----
+async function criarPerfil(nome, pin) {
+  const pin_hash = await hashPin(pin);
+  const { data, error } = await supabaseClient
+    .from('perfis')
+    .insert({ nome, pin_hash })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ---- Verificar PIN de um perfil ----
+async function verificarPin(perfil, pinDigitado) {
+  const hash = await hashPin(pinDigitado);
+  return hash === perfil.pin_hash;
+}
+// ============================================================
+// UI.JS — Utilitário de toast compartilhado entre páginas
+// ============================================================
+
+function toast(mensagem, tipo = 'sucesso') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = mensagem;
+  el.className = 'toast mostrar ' + tipo;
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => {
+    el.classList.remove('mostrar');
+  }, 2800);
+}
+
+async function protegerRota() {
+  const sessao = await getSession();
+  if (!sessao) { window.location.href = 'index.html'; return false; }
+  const perfil = getPerfilAtivo();
+  if (!perfil) { window.location.href = 'index.html'; return false; }
+  document.getElementById('nome-usuario-ativo').textContent = perfil.nome;
+  return true;
+}
+document.getElementById('botao-trocar-perfil').addEventListener('click', trocarPerfil);
+document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
+
+// ============================================================
+// CLIENTES — Lista, cadastro, edição, exclusão + serviços/financeiro
+// ============================================================
+
+let filtroAtual = 'todos';
+let clientesCache = [];
+let catalogoServicos = [];
+let servicosSelecionados = new Set();
+let responsavelSelecionado = '';
+let tipoClienteSelecionado = 'noiva';
+
+const rotulosStatus = {
+  contato: 'Contato', orcamento: 'Orçamento', confirmada: 'Confirmada',
+  concluida: 'Concluída', cancelada: 'Cancelada',
+};
+
+async function carregarClientes() {
+  const listaEl = document.getElementById('lista-clientes');
+  listaEl.innerHTML = '<p class="subtitulo">Carregando...</p>';
+  const { data, error } = await supabaseClient
+    .from('clientes').select('*')
+    .order('data_casamento', { ascending: true, nullsFirst: false });
+  if (error) { listaEl.innerHTML = `<p class="erro">Erro ao carregar clientes: ${error.message}</p>`; return; }
+  clientesCache = data;
+  renderizarLista();
+}
+
+function renderizarLista() {
+  const listaEl = document.getElementById('lista-clientes');
+  const filtrados = filtroAtual === 'todos' ? clientesCache : clientesCache.filter(c => c.status === filtroAtual);
+  if (filtrados.length === 0) {
+    listaEl.innerHTML = `<div class="estado-vazio"><div class="marca-diamante">CM</div><p>Nenhuma cliente encontrada.</p></div>`;
+    return;
+  }
+  listaEl.innerHTML = '';
+  filtrados.forEach(cliente => {
+    const card = document.createElement('div');
+    card.className = 'cartao-cliente';
+    const tipo = cliente.tipo_cliente || 'noiva';
+    const dataFormatada = cliente.data_casamento
+      ? new Date(cliente.data_casamento + 'T00:00:00').toLocaleDateString('pt-BR')
+      : 'Data não definida';
+    const icone = tipo === 'noiva' ? '💍' : tipo === 'empresa' ? '🏢' : '✨';
+    const linhaTipo = tipo === 'noiva' ? dataFormatada : tipo === 'empresa' ? 'Empresa' : 'Cliente social';
+    card.innerHTML = `
+      <div class="cartao-cliente-topo">
+        <h3>${escaparHtml(cliente.nome_noiva)}</h3>
+        <span class="etiqueta etiqueta-${cliente.status}">${rotulosStatus[cliente.status]}</span>
+      </div>
+      <p class="cartao-cliente-info">${icone} ${linhaTipo}</p>
+      ${tipo === 'noiva' && cliente.local_evento ? `<p class="cartao-cliente-info">📍 ${escaparHtml(cliente.local_evento)}</p>` : ''}
+      ${tipo === 'empresa' && cliente.contato_nome ? `<p class="cartao-cliente-info">👤 Contato: ${escaparHtml(cliente.contato_nome)}</p>` : ''}
+      ${tipo === 'empresa' && cliente.cnpj ? `<p class="cartao-cliente-info">🧾 CNPJ: ${escaparHtml(cliente.cnpj)}</p>` : ''}
+      ${cliente.endereco ? `<p class="cartao-cliente-info">📍 ${escaparHtml(cliente.endereco)}</p>` : ''}
+      ${cliente.whatsapp ? `<p class="cartao-cliente-info">📱 ${escaparHtml(cliente.whatsapp)}</p>` : ''}
+      ${cliente.responsavel_nome ? `<p class="cartao-cliente-info">👤 ${escaparHtml(cliente.responsavel_nome)}</p>` : ''}
+    `;
+    card.addEventListener('click', () => abrirModalEdicao(cliente));
+    listaEl.appendChild(card);
+  });
+}
+
+function escaparHtml(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto || '';
+  return div.innerHTML;
+}
+
+// ---- TIPO DE CLIENTE (Noiva / Social) ----
+function configurarSeletorTipoCliente() {
+  document.querySelectorAll('.opcao-tipo-cliente').forEach(botao => {
+    botao.addEventListener('click', () => {
+      document.querySelectorAll('.opcao-tipo-cliente').forEach(b => b.classList.remove('selecionado'));
+      botao.classList.add('selecionado');
+      tipoClienteSelecionado = botao.dataset.tipo;
+      aplicarVisibilidadeCamposPorTipo();
+    });
+  });
+}
+configurarSeletorTipoCliente();
+
+function aplicarVisibilidadeCamposPorTipo() {
+  document.getElementById('campos-noiva').classList.toggle('oculto', tipoClienteSelecionado !== 'noiva');
+  document.getElementById('campos-social').classList.toggle('oculto', tipoClienteSelecionado !== 'social');
+  document.getElementById('campos-empresa').classList.toggle('oculto', tipoClienteSelecionado !== 'empresa');
+  const rotuloNome = document.getElementById('rotulo-nome-cliente');
+  rotuloNome.textContent = tipoClienteSelecionado === 'empresa' ? 'Nome da empresa *' : 'Nome do cliente *';
+}
+
+function definirTipoClienteNoFormulario(tipo) {
+  tipoClienteSelecionado = tipo || 'noiva';
+  document.querySelectorAll('.opcao-tipo-cliente').forEach(b => b.classList.remove('selecionado'));
+  document.querySelector(`.opcao-tipo-cliente[data-tipo="${tipoClienteSelecionado}"]`).classList.add('selecionado');
+  aplicarVisibilidadeCamposPorTipo();
+}
+
+document.getElementById('filtros-status').addEventListener('click', (e) => {
+  if (!e.target.classList.contains('filtro')) return;
+  document.querySelectorAll('.filtro').forEach(f => f.classList.remove('ativo'));
+  e.target.classList.add('ativo');
+  filtroAtual = e.target.dataset.status;
+  renderizarLista();
+});
+
+// ---- RESPONSÁVEL (Tami / Stefania / Outra) ----
+function configurarSeletorResponsavel() {
+  document.querySelectorAll('.opcao-responsavel').forEach(botao => {
+    botao.addEventListener('click', () => {
+      document.querySelectorAll('.opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
+      botao.classList.add('selecionado');
+      responsavelSelecionado = botao.dataset.valor;
+      const campoOutra = document.getElementById('campo-responsavel-outra');
+      if (responsavelSelecionado === 'Outra') {
+        campoOutra.classList.remove('oculto');
+        campoOutra.focus();
+      } else {
+        campoOutra.classList.add('oculto');
+      }
+    });
+  });
+}
+configurarSeletorResponsavel();
+
+function definirResponsavelNoFormulario(nomeSalvo) {
+  document.querySelectorAll('.opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
+  document.getElementById('campo-responsavel-outra').classList.add('oculto');
+  document.getElementById('campo-responsavel-outra').value = '';
+  if (nomeSalvo === 'Tami' || nomeSalvo === 'Stefania') {
+    responsavelSelecionado = nomeSalvo;
+    document.querySelector(`.opcao-responsavel[data-valor="${nomeSalvo}"]`).classList.add('selecionado');
+  } else if (nomeSalvo) {
+    responsavelSelecionado = 'Outra';
+    document.querySelector('.opcao-responsavel[data-valor="Outra"]').classList.add('selecionado');
+    document.getElementById('campo-responsavel-outra').classList.remove('oculto');
+    document.getElementById('campo-responsavel-outra').value = nomeSalvo;
+  } else {
+    responsavelSelecionado = '';
+  }
+}
+
+function obterNomeResponsavelFinal() {
+  if (responsavelSelecionado === 'Outra') {
+    return document.getElementById('campo-responsavel-outra').value.trim() || null;
+  }
+  return responsavelSelecionado || null;
+}
+
+// ---- CATÁLOGO DE SERVIÇOS (checklist no formulário) ----
+async function carregarCatalogoServicos() {
+  const { data, error } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
+  catalogoServicos = error ? [] : data;
+  renderizarChecklistServicos();
+}
+
+function renderizarChecklistServicos() {
+  const containerEl = document.getElementById('lista-servicos-checklist');
+  if (!catalogoServicos.length) {
+    containerEl.innerHTML = '<p class="subtitulo" style="margin:0.3rem 0 0">Nenhum serviço cadastrado ainda — adicione em Financeiro.</p>';
+    return;
+  }
+  containerEl.innerHTML = catalogoServicos.map(s => `
+    <div class="item-servico-checklist">
+      <input type="checkbox" id="servico-check-${s.id}" data-id="${s.id}" data-valor="${s.valor}">
+      <label for="servico-check-${s.id}">${escaparHtml(s.nome)}</label>
+      <span class="valor-servico-checklist">R$ ${Number(s.valor).toFixed(2)}</span>
+    </div>
+  `).join('');
+
+  containerEl.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+    chk.addEventListener('change', () => {
+      if (chk.checked) servicosSelecionados.add(chk.dataset.id);
+      else servicosSelecionados.delete(chk.dataset.id);
+      atualizarTotalServicos();
+    });
+  });
+}
+
+function atualizarTotalServicos() {
+  let total = 0;
+  catalogoServicos.forEach(s => { if (servicosSelecionados.has(s.id)) total += Number(s.valor); });
+  document.getElementById('valor-total-servicos').textContent = `R$ ${total.toFixed(2)}`;
+}
+
+// ---- MODAL ----
+const modal = document.getElementById('modal-cliente');
+const formCliente = document.getElementById('form-cliente');
+
+document.getElementById('botao-nova-cliente').addEventListener('click', () => {
+  formCliente.reset();
+  document.getElementById('cliente-id').value = '';
+  document.getElementById('modal-titulo').textContent = 'Nova cliente';
+  document.getElementById('botao-excluir-cliente').classList.add('oculto');
+  document.getElementById('erro-cliente').textContent = '';
+  document.getElementById('secao-servicos').classList.remove('oculto');
+  servicosSelecionados = new Set();
+  renderizarChecklistServicos();
+  atualizarTotalServicos();
+  definirResponsavelNoFormulario('');
+  definirTipoClienteNoFormulario('noiva');
+  modal.classList.remove('oculto');
+});
+
+function abrirModalEdicao(cliente) {
+  document.getElementById('cliente-id').value = cliente.id;
+  document.getElementById('nome_noiva').value = cliente.nome_noiva || '';
+  document.getElementById('nome_parceiro').value = cliente.nome_parceiro || '';
+  document.getElementById('data_casamento').value = cliente.data_casamento || '';
+  document.getElementById('idioma').value = cliente.idioma || 'pt';
+  document.getElementById('local_evento').value = cliente.local_evento || '';
+  document.getElementById('whatsapp').value = cliente.whatsapp || '';
+  document.getElementById('email').value = cliente.email || '';
+  document.getElementById('status').value = cliente.status || 'contato';
+  document.getElementById('observacoes').value = cliente.observacoes || '';
+  document.getElementById('endereco').value = cliente.endereco || '';
+  document.getElementById('redes_sociais').value = cliente.redes_sociais || '';
+  document.getElementById('contato_nome').value = cliente.contato_nome || '';
+  document.getElementById('cnpj').value = cliente.cnpj || '';
+  document.getElementById('inscricao_estadual').value = cliente.inscricao_estadual || '';
+  document.getElementById('fornecedor_fotografo').value = cliente.fornecedor_fotografo || '';
+  document.getElementById('fornecedor_buffet').value = cliente.fornecedor_buffet || '';
+  document.getElementById('fornecedor_cerimonial').value = cliente.fornecedor_cerimonial || '';
+  document.getElementById('fornecedor_vestido').value = cliente.fornecedor_vestido || '';
+  document.getElementById('fornecedor_video').value = cliente.fornecedor_video || '';
+  document.getElementById('modal-titulo').textContent = 'Editar cliente';
+  document.getElementById('botao-excluir-cliente').classList.remove('oculto');
+  document.getElementById('erro-cliente').textContent = '';
+  // serviços só se aplicam ao criar a cliente (fatura inicial); ao editar, gerenciar em Financeiro
+  document.getElementById('secao-servicos').classList.add('oculto');
+  definirResponsavelNoFormulario(cliente.responsavel_nome || '');
+  definirTipoClienteNoFormulario(cliente.tipo_cliente || 'noiva');
+  modal.classList.remove('oculto');
+}
+
+document.getElementById('botao-fechar-modal').addEventListener('click', () => modal.classList.add('oculto'));
+modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('oculto'); });
+
+formCliente.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById('erro-cliente');
+  erroEl.textContent = '';
+  const id = document.getElementById('cliente-id').value;
+  const perfil = getPerfilAtivo();
+
+  const dadosCliente = {
+    nome_noiva: document.getElementById('nome_noiva').value.trim(),
+    whatsapp: document.getElementById('whatsapp').value.trim() || null,
+    email: document.getElementById('email').value.trim() || null,
+    endereco: document.getElementById('endereco').value.trim() || null,
+    status: document.getElementById('status').value,
+    observacoes: document.getElementById('observacoes').value.trim() || null,
+    responsavel_nome: obterNomeResponsavelFinal(),
+    tipo_cliente: tipoClienteSelecionado,
+    idioma: document.getElementById('idioma').value,
+  };
+
+  if (tipoClienteSelecionado === 'noiva') {
+    Object.assign(dadosCliente, {
+      nome_parceiro: document.getElementById('nome_parceiro').value.trim() || null,
+      data_casamento: document.getElementById('data_casamento').value || null,
+      local_evento: document.getElementById('local_evento').value.trim() || null,
+      fornecedor_fotografo: document.getElementById('fornecedor_fotografo').value.trim() || null,
+      fornecedor_buffet: document.getElementById('fornecedor_buffet').value.trim() || null,
+      fornecedor_cerimonial: document.getElementById('fornecedor_cerimonial').value.trim() || null,
+      fornecedor_vestido: document.getElementById('fornecedor_vestido').value.trim() || null,
+      fornecedor_video: document.getElementById('fornecedor_video').value.trim() || null,
+      redes_sociais: null, contato_nome: null, cnpj: null, inscricao_estadual: null,
+    });
+  } else if (tipoClienteSelecionado === 'social') {
+    Object.assign(dadosCliente, {
+      redes_sociais: document.getElementById('redes_sociais').value.trim() || null,
+      nome_parceiro: null, data_casamento: null, local_evento: null,
+      fornecedor_fotografo: null, fornecedor_buffet: null, fornecedor_cerimonial: null,
+      fornecedor_vestido: null, fornecedor_video: null,
+      contato_nome: null, cnpj: null, inscricao_estadual: null,
+    });
+  } else {
+    Object.assign(dadosCliente, {
+      contato_nome: document.getElementById('contato_nome').value.trim() || null,
+      cnpj: document.getElementById('cnpj').value.trim() || null,
+      inscricao_estadual: document.getElementById('inscricao_estadual').value.trim() || null,
+      nome_parceiro: null, data_casamento: null, local_evento: null,
+      fornecedor_fotografo: null, fornecedor_buffet: null, fornecedor_cerimonial: null,
+      fornecedor_vestido: null, fornecedor_video: null, redes_sociais: null,
+    });
+  }
+
+  let clienteId = id;
+
+  if (id) {
+    const resultado = await supabaseClient.from('clientes').update(dadosCliente).eq('id', id);
+    if (resultado.error) { erroEl.textContent = `Erro ao salvar: ${resultado.error.message}`; return; }
+  } else {
+    dadosCliente.criado_por = perfil ? perfil.id : null;
+    const resultado = await supabaseClient.from('clientes').insert(dadosCliente).select().single();
+    if (resultado.error) { erroEl.textContent = `Erro ao salvar: ${resultado.error.message}`; return; }
+    clienteId = resultado.data.id;
+
+    // criar fatura inicial se houver serviços selecionados
+    if (servicosSelecionados.size > 0) {
+      const itens = catalogoServicos.filter(s => servicosSelecionados.has(s.id));
+      const valorTotal = itens.reduce((soma, s) => soma + Number(s.valor), 0);
+      const { data: fatura, error: erroFatura } = await supabaseClient
+        .from('faturas')
+        .insert({ cliente_id: clienteId, valor_total: valorTotal, status: 'rascunho', criado_por: perfil ? perfil.id : null })
+        .select().single();
+
+      if (!erroFatura && fatura) {
+        const linhasItens = itens.map(s => ({
+          fatura_id: fatura.id, servico_id: s.id, descricao: s.nome, quantidade: 1, valor_unitario: s.valor,
+        }));
+        await supabaseClient.from('itens_fatura').insert(linhasItens);
+      }
+    }
+  }
+
+  modal.classList.add('oculto');
+  toast(id ? 'Cliente atualizada' : 'Cliente e fatura criadas', 'sucesso');
+  await carregarClientes();
+});
+
+document.getElementById('botao-excluir-cliente').addEventListener('click', async () => {
+  const id = document.getElementById('cliente-id').value;
+  if (!id) return;
+  const confirmar = confirm('Tem certeza que quer excluir esta cliente? Isso vai apagar também as faturas e pagamentos ligados a ela.');
+  if (!confirmar) return;
+  const { error } = await supabaseClient.from('clientes').delete().eq('id', id);
+  if (error) { document.getElementById('erro-cliente').textContent = `Erro ao excluir: ${error.message}`; return; }
+  modal.classList.add('oculto');
+  toast('Cliente excluída', 'sucesso');
+  await carregarClientes();
+});
+
+(async function iniciar() {
+  const ok = await protegerRota();
+  if (ok) {
+    await carregarClientes();
+    await carregarCatalogoServicos();
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

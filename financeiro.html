@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Financeiro — Camarim Mineiro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3A7A6C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camarim Mineiro">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   CAMARIM MINEIRO — Sistema de design
+   Estrutura inspirada no Vicaf (superfícies em camadas, raio
+   generoso, PIN por teclado, toasts) — em tom marfim/verde-água/
+   dourado, com Cormorant Garamond + Montserrat da marca.
+   ============================================================ */
+
+:root {
+  --bg: #FAF6EF;
+  --surface: #FFFFFF;
+  --surface2: #F4EBDC;
+  --surface3: #EDE1CC;
+  --border: #E6D9C2;
+  --teal: #4F9A89;
+  --teal-dim: #E4F1EC;
+  --teal-deep: #3A7A6C;
+  --gold: #B98C55;
+  --gold-dim: #F5E9D6;
+  --ink: #2C2620;
+  --ink2: #8C8072;
+  --ink3: #B8AC9B;
+  --red: #B3564A;
+  --red-dim: #F6E2DF;
+  --white: #FFFFFF;
+  --radius: 18px;
+  --radius-sm: 11px;
+  --shadow: 0 1px 3px rgba(44, 38, 32, 0.05);
+  --shadow-card: 0 18px 40px -18px rgba(44, 38, 32, 0.22);
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mono { font-family: 'DM Mono', monospace; }
+
+.subtitulo {
+  color: var(--ink2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1.6rem;
+}
+
+.oculto { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================
+   MARCA
+   ============================================================ */
+.diamante { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+.marca-diamante {
+  width: 40px; height: 40px;
+  background: var(--teal);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 0.8rem;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  flex-shrink: 0;
+}
+
+.marca-lockup { text-align: center; margin-bottom: 1.6rem; }
+.marca-lockup .marca-diamante { width: 64px; height: 64px; font-size: 1.15rem; margin: 0 auto 0.85rem; box-shadow: var(--shadow-card); }
+.marca-lockup .marca-wordmark {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink);
+}
+
+/* ============================================================
+   TELA CHEIA / CARD DE AUTENTICAÇÃO
+   ============================================================ */
+.tela-cheia {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem 2.25rem;
+  width: 100%; max-width: 400px;
+  text-align: center;
+}
+
+.cartao h1 { font-size: 1.9rem; }
+
+form { display: flex; flex-direction: column; text-align: left; gap: 0.25rem; }
+
+label { font-size: 0.76rem; font-weight: 600; color: var(--ink2); margin-top: 0.85rem; }
+
+input, select, textarea {
+  font-family: 'Montserrat', sans-serif;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--surface2);
+  color: var(--ink);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+input::placeholder { color: var(--ink3); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--teal); background: var(--white); box-shadow: 0 0 0 3px var(--teal-dim);
+}
+
+.botao-principal {
+  margin-top: 1.5rem; padding: 0.85rem;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--teal-deep); color: var(--white);
+  font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  transition: background var(--transition), transform 120ms;
+}
+.botao-principal:hover { background: var(--teal); }
+.botao-principal:active { transform: scale(0.98); }
+.botao-principal:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.botao-texto {
+  background: none; border: none; color: var(--ink2);
+  font-size: 0.83rem; cursor: pointer; margin-top: 0.8rem; text-decoration: underline;
+}
+.botao-texto:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.erro { color: var(--red); font-size: 0.83rem; min-height: 1.2em; margin-top: 0.55rem; }
+
+.lista-perfis { display: flex; flex-direction: column; gap: 0.6rem; }
+.botao-perfil {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.85rem 1.05rem;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--ink);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+.botao-perfil::before {
+  content: ''; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.botao-perfil:hover { border-color: var(--teal); background: var(--white); transform: translateX(2px); }
+
+/* ============================================================
+   PIN — teclado numérico
+   ============================================================ */
+.pin-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 0.9rem;
+}
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 1.4rem 0 1.6rem; }
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all 120ms;
+}
+.pin-dot.preenchido { background: var(--teal-deep); border-color: var(--teal-deep); }
+.pin-dot.erro { background: var(--red); border-color: var(--red); }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 0.5rem; }
+.pin-key {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 15px 0;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 600;
+  cursor: pointer; color: var(--ink); transition: all 100ms;
+}
+.pin-key:active { transform: scale(0.94); background: var(--teal-dim); border-color: var(--teal); }
+.pin-key.apagar { font-size: 1rem; font-family: 'Montserrat', sans-serif; color: var(--ink2); }
+.pin-key.vazio { background: transparent; border-color: transparent; cursor: default; }
+.pin-keypad[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
+
+/* ============================================================
+   APP PRINCIPAL
+   ============================================================ */
+.tela-app { min-height: 100vh; }
+
+.cabecalho-app {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.05rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.marca-horizontal { display: flex; align-items: center; gap: 0.65rem; }
+.marca-diamante-pequena { width: 32px; height: 32px; font-size: 0.65rem; }
+.marca-nome {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink);
+}
+
+.nav-app { display: flex; gap: 0.4rem; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); }
+.nav-link {
+  font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-decoration: none;
+  padding: 0.5rem 1.1rem; border-radius: 8px; transition: all var(--transition);
+}
+.nav-link.ativo { color: var(--white); background: var(--teal-deep); }
+.nav-link:hover:not(.ativo) { color: var(--ink); }
+
+.usuario-ativo { display: flex; align-items: center; gap: 1.1rem; font-size: 0.85rem; color: var(--ink2); }
+.usuario-ativo #nome-usuario-ativo { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--ink); }
+
+.conteudo-principal { max-width: 1100px; margin: 0 auto; padding: 2.6rem 2rem 4rem; }
+
+.barra-acoes { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.3rem; }
+.barra-acoes h1 { font-size: 2rem; }
+.botao-pequeno { margin-top: 0; width: auto; padding: 0.68rem 1.3rem; }
+
+.filtros {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 1.6rem 0 2rem;
+  background: var(--surface2); padding: 5px; border-radius: var(--radius-sm); width: fit-content;
+}
+.filtro {
+  padding: 0.42rem 1rem; border-radius: 8px; border: none;
+  background: transparent; color: var(--ink2);
+  font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.filtro.ativo { background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+.filtro:hover:not(.ativo) { color: var(--ink); }
+
+.lista-clientes { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.cartao-cliente {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.35rem 1.45rem; cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+}
+.cartao-cliente:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-2px); }
+
+.cartao-cliente-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.6rem; }
+.cartao-cliente-topo h3 { font-size: 1.25rem; font-weight: 600; }
+.cartao-cliente-info { font-size: 0.83rem; color: var(--ink2); margin: 0.28rem 0; }
+
+.etiqueta {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+}
+.etiqueta::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.etiqueta-contato { color: #8A7F6E; background: #F1ECE3; }
+.etiqueta-orcamento { color: #96702F; background: #F3E7D2; }
+.etiqueta-confirmada { color: var(--teal-deep); background: var(--teal-dim); }
+.etiqueta-concluida { color: var(--white); background: var(--teal-deep); }
+.etiqueta-cancelada { color: var(--red); background: var(--red-dim); }
+
+.estado-vazio { grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--ink2); }
+.estado-vazio .marca-diamante { width: 38px; height: 38px; margin: 0 auto 1.1rem; opacity: 0.6; }
+.estado-vazio p { font-size: 0.9rem; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-fundo {
+  position: fixed; inset: 0; background: rgba(44, 38, 32, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 100;
+}
+.modal-caixa {
+  background: var(--surface); border-radius: var(--radius); padding: 1.9rem 2.1rem 2.1rem;
+  width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-card);
+}
+.modal-cabecalho { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem; padding-bottom: 1.05rem; border-bottom: 1px solid var(--border); }
+.modal-cabecalho h2 { font-size: 1.5rem; }
+.botao-fechar { background: var(--surface2); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1.1rem; color: var(--ink2); cursor: pointer; }
+.botao-fechar:hover { color: var(--ink); }
+
+.linha-form { display: flex; gap: 1rem; }
+.campo-form { flex: 1; }
+textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
+
+.modal-rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.05rem; border-top: 1px solid var(--border); }
+.modal-rodape .botao-principal { margin-top: 0; }
+#botao-excluir-cliente { color: var(--red); margin-top: 0; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--white);
+  border-radius: 999px; padding: 0.7rem 1.3rem; font-size: 0.85rem; font-weight: 500;
+  z-index: 300; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap; box-shadow: var(--shadow-card);
+}
+.toast.mostrar { transform: translateX(-50%) translateY(0); }
+.toast.sucesso { background: var(--teal-deep); }
+.toast.erro { background: var(--red); }
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+@media (max-width: 860px) {
+  .cabecalho-app { flex-wrap: wrap; gap: 0.85rem; padding: 1rem 1.25rem; }
+  .nav-app { order: 3; width: 100%; justify-content: space-between; }
+  .conteudo-principal { padding: 2rem 1.25rem 3rem; }
+}
+@media (max-width: 480px) {
+  .cartao { padding: 2.1rem 1.5rem; }
+  .linha-form { flex-direction: column; gap: 0; }
+  .barra-acoes { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+  .pin-keypad { gap: 8px; }
+}
+
+/* ============================================================
+   MENU PRINCIPAL (HUB) — Agenda / Clientes / Financeiro
+   ============================================================ */
+.menu-hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem;
+  max-width: 900px;
+  margin: 1rem auto 0;
+}
+.cartao-hub {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.6rem;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+  font-family: 'Montserrat', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.cartao-hub:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-3px); }
+.cartao-hub-icone {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+}
+.cartao-hub h2 { font-size: 1.4rem; }
+.cartao-hub p { font-size: 0.85rem; color: var(--ink2); margin: 0; line-height: 1.5; }
+
+.saudacao-hub { text-align: center; margin-bottom: 0.5rem; }
+.saudacao-hub .rotulo-eyebrow-simples { font-size: 0.75rem; color: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; }
+.saudacao-hub h1 { font-size: 2.1rem; margin-top: 0.3rem; }
+
+.sub-tela { }
+.sub-tela.oculto { display: none !important; }
+
+.botao-voltar-menu {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--ink2);
+  background: none; border: none; cursor: pointer; margin-bottom: 1.2rem;
+  padding: 0;
+}
+.botao-voltar-menu:hover { color: var(--ink); }
+
+.placeholder-secao {
+  text-align: center;
+  padding: 4.5rem 1rem;
+  color: var(--ink2);
+}
+.placeholder-secao .marca-diamante { width: 44px; height: 44px; margin: 0 auto 1.2rem; opacity: 0.55; }
+.placeholder-secao h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--ink); }
+.placeholder-secao p { font-size: 0.88rem; max-width: 340px; margin: 0 auto; }
+
+/* ============================================================
+   CATÁLOGO DE SERVIÇOS (Financeiro)
+   ============================================================ */
+.lista-servicos { display: flex; flex-direction: column; gap: 0.6rem; }
+.linha-servico {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; cursor: pointer; transition: border-color var(--transition);
+}
+.linha-servico:hover { border-color: var(--teal); }
+.linha-servico.inativo { opacity: 0.5; }
+.linha-servico-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; }
+.linha-servico-direita { display: flex; align-items: center; gap: 0.9rem; }
+.linha-servico-valor { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--teal-deep); font-weight: 500; }
+.etiqueta-inativo { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--ink3); background: var(--surface2); padding: 0.2rem 0.55rem; border-radius: 999px; }
+
+/* checklist de serviços no formulário de cliente */
+.lista-servicos-checklist { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.4rem; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem; background: var(--surface2); }
+.item-servico-checklist { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.3rem; font-size: 0.88rem; }
+.item-servico-checklist input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.item-servico-checklist label { flex: 1; margin: 0; font-size: 0.88rem; font-weight: 400; color: var(--ink); text-transform: none; letter-spacing: 0; cursor: pointer; }
+.item-servico-checklist .valor-servico-checklist { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--ink2); }
+.total-servicos-selecionados {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 600;
+}
+.total-servicos-selecionados .valor-total { font-family: 'DM Mono', monospace; color: var(--teal-deep); font-size: 1.05rem; }
+
+/* responsável: Tami / Ste / Outra */
+.opcoes-responsavel { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.opcao-responsavel {
+  flex: 1; padding: 0.55rem 0.4rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-responsavel.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+
+.opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
+.opcao-tipo-cliente {
+  flex: 1; padding: 0.7rem 0.5rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-tipo-cliente.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+.grupo-fornecedores {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; margin-top: 0.6rem;
+}
+.grupo-fornecedores .rotulo-eyebrow-simples { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); display: block; margin-bottom: 0.6rem; }
+
+/* checklist de serviços com quantidade (agendamento) */
+.item-servico-evento {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.6rem; padding: 0.5rem 0.3rem; font-size: 0.85rem; border-bottom: 1px solid var(--border);
+}
+.item-servico-evento:last-child { border-bottom: none; }
+.item-servico-evento-info { flex: 1; min-width: 0; }
+.item-servico-evento-nome { color: var(--ink); }
+.item-servico-evento-valor { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--ink2); }
+.controle-quantidade { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.botao-quantidade {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink2); font-size: 0.9rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  transition: all var(--transition);
+}
+.botao-quantidade:hover { border-color: var(--teal-deep); color: var(--ink); }
+.valor-quantidade { font-family: 'DM Mono', monospace; min-width: 18px; text-align: center; font-size: 0.85rem; font-weight: 600; }
+
+/* seção de pagamento no evento */
+.secao-pagamento {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem; margin-top: 1rem;
+}
+.secao-pagamento-titulo { font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.7rem; }
+.linha-pagamento-sinal {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.85rem; color: var(--ink); background: var(--surface); border-radius: 8px;
+  padding: 0.55rem 0.8rem; margin-bottom: 0.7rem;
+}
+.linha-pagamento-sinal .valor-sinal-destaque { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+.check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
+.campo-metodo-pagamento { margin-left: 24px; margin-bottom: 0.6rem; }
+.campo-metodo-pagamento select { width: 100%; }
+
+/* ============================================================
+   DASHBOARD FINANCEIRO
+   ============================================================ */
+.filtro-periodo-financeiro { display: flex; gap: 0.7rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.6rem; }
+.filtro-periodo-financeiro .campo-form { flex: 0 0 160px; }
+.filtro-periodo-financeiro label { margin-top: 0; }
+
+.cartoes-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.8rem; }
+.cartao-resumo {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.3rem 1.4rem;
+}
+.cartao-resumo .rotulo { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); margin-bottom: 0.5rem; }
+.cartao-resumo .valor { font-family: 'DM Mono', monospace; font-size: 1.5rem; font-weight: 500; color: var(--ink); }
+.cartao-resumo.negocio .valor { color: var(--teal-deep); }
+.cartao-resumo.profissional .valor { color: #96702F; }
+
+.grafico-container {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.5rem; margin-bottom: 1.8rem;
+}
+.grafico-container h3 { font-size: 1.15rem; margin-bottom: 1rem; }
+.grafico-canvas-wrap { position: relative; height: 260px; }
+
+.breakdown-profissionais { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
+.linha-breakdown { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
+.linha-breakdown .nome-prof { color: var(--ink); font-weight: 500; }
+.linha-breakdown .valor-prof { font-family: 'DM Mono', monospace; color: #96702F; font-weight: 600; }
+
+.export-row-financeiro { display: flex; gap: 0.7rem; margin-bottom: 1.4rem; }
+.botao-exportar {
+  padding: 0.6rem 1.1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink2); font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 0.4rem; transition: all var(--transition);
+}
+.botao-exportar:hover { border-color: var(--teal); color: var(--ink); }
+
+.tabela-pagamentos { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.tabela-pagamentos th {
+  text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border);
+  color: var(--ink2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+}
+.tabela-pagamentos td { padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--surface2); }
+.tabela-pagamentos tr:hover { background: var(--surface2); }
+.pill-destino { font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 999px; }
+.pill-destino.negocio { background: var(--teal-dim); color: var(--teal-deep); }
+.pill-destino.profissional { background: var(--gold-dim); color: #8a6a2f; }
+
+.secao-divisoria { border: none; border-top: 1px solid var(--border); margin: 2.5rem 0; }
+</style>
+</head>
+<body>
+
+<header class="cabecalho-app">
+  <div class="marca marca-horizontal">
+    <div class="marca-diamante marca-diamante-pequena">CM</div>
+    <span class="marca-nome">Camarim Mineiro</span>
+  </div>
+  <nav class="nav-app">
+    <a href="index.html" class="nav-link">Menu</a>
+    <a href="agenda.html" class="nav-link">Agenda</a>
+    <a href="clientes.html" class="nav-link">Clientes</a>
+    <a href="financeiro.html" class="nav-link ativo">Financeiro</a>
+  </nav>
+  <div class="usuario-ativo">
+    <span id="nome-usuario-ativo"></span>
+    <button class="botao-texto" id="botao-trocar-perfil">Trocar</button>
+    <button class="botao-texto" id="botao-sair">Sair</button>
+  </div>
+</header>
+
+<main class="conteudo-principal">
+
+  <h1>Financeiro</h1>
+  <p class="subtitulo">Sinal (20%) para o negócio, saldo (80%) para quem atendeu.</p>
+
+  <div class="filtro-periodo-financeiro">
+    <div class="campo-form">
+      <label for="financeiro-data-inicio">De</label>
+      <input type="date" id="financeiro-data-inicio">
+    </div>
+    <div class="campo-form">
+      <label for="financeiro-data-fim">Até</label>
+      <input type="date" id="financeiro-data-fim">
+    </div>
+    <div class="campo-form">
+      <label for="financeiro-filtro-profissional">Profissional</label>
+      <select id="financeiro-filtro-profissional"><option value="">Todas as profissionais</option></select>
+    </div>
+    <button class="botao-principal botao-pequeno" id="botao-aplicar-periodo">Aplicar</button>
+  </div>
+
+  <div class="cartoes-resumo">
+    <div class="cartao-resumo negocio">
+      <div class="rotulo">Recebido pelo negócio</div>
+      <div class="valor" id="valor-total-negocio">R$ 0.00</div>
+    </div>
+    <div class="cartao-resumo profissional">
+      <div class="rotulo">Pago às profissionais</div>
+      <div class="valor" id="valor-total-profissionais">R$ 0.00</div>
+    </div>
+    <div class="cartao-resumo">
+      <div class="rotulo">Total movimentado</div>
+      <div class="valor" id="valor-total-geral">R$ 0.00</div>
+    </div>
+  </div>
+
+  <div class="grafico-container">
+    <h3>Últimos 6 meses</h3>
+    <div class="grafico-canvas-wrap"><canvas id="grafico-mensal"></canvas></div>
+    <div class="breakdown-profissionais" id="breakdown-profissionais"></div>
+  </div>
+
+  <div class="export-row-financeiro">
+    <button class="botao-exportar" id="botao-exportar-excel">⬇ Exportar Excel</button>
+    <button class="botao-exportar" id="botao-exportar-pdf">⬇ Exportar PDF</button>
+  </div>
+
+  <div style="overflow-x:auto">
+    <table class="tabela-pagamentos">
+      <thead>
+        <tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Destino</th><th>Método</th><th style="text-align:right">Valor</th></tr>
+      </thead>
+      <tbody id="corpo-tabela-pagamentos">
+        <tr><td colspan="6" style="padding:1.5rem; text-align:center; color:var(--ink2)">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="secao-divisoria">
+
+  <div class="barra-acoes">
+    <h1 style="font-size:1.7rem">Serviços e valores</h1>
+    <button class="botao-principal botao-pequeno" id="botao-novo-servico">+ Novo serviço</button>
+  </div>
+  <p class="subtitulo">Catálogo usado ao adicionar uma cliente — selecione os serviços contratados e o valor entra direto na fatura.</p>
+  <div class="lista-servicos" id="lista-servicos">
+    <p class="subtitulo">Carregando...</p>
+  </div>
+
+</main>
+
+<div class="modal-fundo oculto" id="modal-servico">
+  <div class="modal-caixa">
+    <div class="modal-cabecalho">
+      <h2 id="modal-servico-titulo">Novo serviço</h2>
+      <button class="botao-fechar" id="botao-fechar-modal-servico">×</button>
+    </div>
+    <form id="form-servico">
+      <input type="hidden" id="servico-id">
+      <label for="servico-nome">Nome do serviço *</label>
+      <input type="text" id="servico-nome" required placeholder="Ex: Maquiagem para noiva">
+      <label for="servico-valor">Valor (R$) *</label>
+      <input type="number" id="servico-valor" step="0.01" min="0" required>
+      <label style="display:flex; align-items:center; gap:0.5rem; margin-top:1rem; text-transform:none; font-size:0.85rem; color:var(--ink);">
+        <input type="checkbox" id="servico-ativo" checked style="width:16px;height:16px;accent-color:var(--teal-deep);">
+        Serviço ativo (aparece na lista ao adicionar cliente)
+      </label>
+      <div class="modal-rodape">
+        <button type="button" class="botao-texto" id="botao-excluir-servico">Excluir</button>
+        <button type="submit" class="botao-principal">Salvar</button>
+      </div>
+      <p class="erro" id="erro-servico"></p>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CLIENTE SUPABASE
+// Substitua os valores abaixo pelos do seu projeto:
+// Supabase Dashboard → Project Settings → API
+// - Project URL
+// - anon public key (NÃO é a service_role — essa nunca vai no frontend)
+// ============================================================
+
+const SUPABASE_URL = 'https://llhccvbovuzifsikvekz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsaGNjdmJvdnV6aWZzaWt2ZWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTY0MzIsImV4cCI6MjA5ODQ5MjQzMn0.9PCEjmF8R_MxVh24XOngaY7ZwyYGOEMcyDKDtpkPPUY';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ============================================================
+// AUTENTICAÇÃO
+// Fluxo:
+// 1. Login único compartilhado (Supabase Auth)
+// 2. Seleção de perfil (Tami / Stefania) + PIN — identificação leve,
+//    guardada em localStorage. Não é uma camada de segurança real,
+//    serve só para saber quem criou/editou cada registro.
+// ============================================================
+
+const STORAGE_KEY = 'camarim_perfil_ativo';
+
+// ---- Hash simples do PIN (SHA-256) — suficiente para identificação, não é senha ----
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ---- Sessão Supabase ----
+async function getSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data.session;
+}
+
+async function signIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signOutCompleto() {
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Perfil ativo (Tami / Stefania) ----
+function getPerfilAtivo() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+function setPerfilAtivo(perfil) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: perfil.id, nome: perfil.nome }));
+}
+
+function trocarPerfil() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Buscar perfis existentes ----
+async function buscarPerfis() {
+  const { data, error } = await supabaseClient.from('perfis').select('id, nome, pin_hash');
+  if (error) throw error;
+  return data;
+}
+
+// ---- Criar um novo perfil (primeiro acesso) ----
+async function criarPerfil(nome, pin) {
+  const pin_hash = await hashPin(pin);
+  const { data, error } = await supabaseClient
+    .from('perfis')
+    .insert({ nome, pin_hash })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ---- Verificar PIN de um perfil ----
+async function verificarPin(perfil, pinDigitado) {
+  const hash = await hashPin(pinDigitado);
+  return hash === perfil.pin_hash;
+}
+// ============================================================
+// UI.JS — Utilitário de toast compartilhado entre páginas
+// ============================================================
+
+function toast(mensagem, tipo = 'sucesso') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = mensagem;
+  el.className = 'toast mostrar ' + tipo;
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => {
+    el.classList.remove('mostrar');
+  }, 2800);
+}
+
+async function protegerRota() {
+  const sessao = await getSession();
+  if (!sessao) { window.location.href = 'index.html'; return false; }
+  const perfil = getPerfilAtivo();
+  if (!perfil) { window.location.href = 'index.html'; return false; }
+  document.getElementById('nome-usuario-ativo').textContent = perfil.nome;
+  return true;
+}
+document.getElementById('botao-trocar-perfil').addEventListener('click', trocarPerfil);
+document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
+
+// ============================================================
+// FINANCEIRO — catálogo de serviços e valores
+// ============================================================
+
+async function carregarServicos() {
+  const listaEl = document.getElementById('lista-servicos');
+  listaEl.innerHTML = '<p class="subtitulo">Carregando...</p>';
+  const { data, error } = await supabaseClient.from('servicos').select('*').order('nome');
+  if (error) { listaEl.innerHTML = `<p class="erro">Erro ao carregar serviços: ${error.message}</p>`; return; }
+
+  if (!data.length) {
+    listaEl.innerHTML = `<div class="estado-vazio"><div class="marca-diamante">CM</div><p>Nenhum serviço cadastrado ainda.</p></div>`;
+    return;
+  }
+
+  listaEl.innerHTML = '';
+  data.forEach(s => {
+    const linha = document.createElement('div');
+    linha.className = 'linha-servico' + (s.ativo ? '' : ' inativo');
+    linha.innerHTML = `
+      <span class="linha-servico-nome">${escaparHtmlServico(s.nome)}</span>
+      <span class="linha-servico-direita">
+        ${!s.ativo ? '<span class="etiqueta-inativo">Inativo</span>' : ''}
+        <span class="linha-servico-valor">R$ ${Number(s.valor).toFixed(2)}</span>
+      </span>`;
+    linha.addEventListener('click', () => abrirModalServico(s));
+    listaEl.appendChild(linha);
+  });
+}
+
+function escaparHtmlServico(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto || '';
+  return div.innerHTML;
+}
+
+const modalServico = document.getElementById('modal-servico');
+const formServico = document.getElementById('form-servico');
+
+document.getElementById('botao-novo-servico').addEventListener('click', () => {
+  formServico.reset();
+  document.getElementById('servico-id').value = '';
+  document.getElementById('servico-ativo').checked = true;
+  document.getElementById('modal-servico-titulo').textContent = 'Novo serviço';
+  document.getElementById('botao-excluir-servico').classList.add('oculto');
+  document.getElementById('erro-servico').textContent = '';
+  modalServico.classList.remove('oculto');
+});
+
+function abrirModalServico(servico) {
+  document.getElementById('servico-id').value = servico.id;
+  document.getElementById('servico-nome').value = servico.nome;
+  document.getElementById('servico-valor').value = servico.valor;
+  document.getElementById('servico-ativo').checked = servico.ativo;
+  document.getElementById('modal-servico-titulo').textContent = 'Editar serviço';
+  document.getElementById('botao-excluir-servico').classList.remove('oculto');
+  document.getElementById('erro-servico').textContent = '';
+  modalServico.classList.remove('oculto');
+}
+
+document.getElementById('botao-fechar-modal-servico').addEventListener('click', () => modalServico.classList.add('oculto'));
+modalServico.addEventListener('click', (e) => { if (e.target === modalServico) modalServico.classList.add('oculto'); });
+
+formServico.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById('erro-servico');
+  erroEl.textContent = '';
+  const id = document.getElementById('servico-id').value;
+  const dados = {
+    nome: document.getElementById('servico-nome').value.trim(),
+    valor: parseFloat(document.getElementById('servico-valor').value) || 0,
+    ativo: document.getElementById('servico-ativo').checked,
+  };
+  let resultado;
+  if (id) resultado = await supabaseClient.from('servicos').update(dados).eq('id', id);
+  else resultado = await supabaseClient.from('servicos').insert(dados);
+
+  if (resultado.error) { erroEl.textContent = `Erro ao salvar: ${resultado.error.message}`; return; }
+  modalServico.classList.add('oculto');
+  toast(id ? 'Serviço atualizado' : 'Serviço adicionado', 'sucesso');
+  await carregarServicos();
+});
+
+document.getElementById('botao-excluir-servico').addEventListener('click', async () => {
+  const id = document.getElementById('servico-id').value;
+  if (!id) return;
+  if (!confirm('Excluir este serviço do catálogo?')) return;
+  const { error } = await supabaseClient.from('servicos').delete().eq('id', id);
+  if (error) { document.getElementById('erro-servico').textContent = `Erro ao excluir: ${error.message}`; return; }
+  modalServico.classList.add('oculto');
+  toast('Serviço excluído', 'sucesso');
+  await carregarServicos();
+});
+
+// ============================================================
+// DASHBOARD FINANCEIRO — resumo, gráfico, tabela, exportação
+// ============================================================
+
+let pagamentosFiltrados = [];
+let graficoMensal = null;
+
+function definirPeriodoPadrao() {
+  const hoje = new Date();
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+  document.getElementById('financeiro-data-inicio').value = chaveDataFinanceiro(inicioMes);
+  document.getElementById('financeiro-data-fim').value = chaveDataFinanceiro(fimMes);
+}
+
+function chaveDataFinanceiro(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function carregarListaProfissionais() {
+  const { data } = await supabaseClient
+    .from('pagamentos').select('responsavel_nome')
+    .eq('destino', 'profissional').not('responsavel_nome', 'is', null);
+  const nomesDoBanco = (data || []).map(p => p.responsavel_nome);
+  const nomes = Array.from(new Set(['Tami', 'Stefania', ...nomesDoBanco])).sort();
+  const selectEl = document.getElementById('financeiro-filtro-profissional');
+  selectEl.innerHTML = '<option value="">Todas as profissionais</option>' +
+    nomes.map(nome => `<option value="${nome}">${nome}</option>`).join('');
+}
+
+async function carregarResumoFinanceiro() {
+  const inicio = document.getElementById('financeiro-data-inicio').value;
+  const fim = document.getElementById('financeiro-data-fim').value;
+  const profissionalFiltro = document.getElementById('financeiro-filtro-profissional').value;
+
+  let query = supabaseClient
+    .from('pagamentos')
+    .select('*, clientes(nome_noiva)')
+    .gte('data_pagamento', inicio)
+    .lte('data_pagamento', fim)
+    .order('data_pagamento', { ascending: false });
+
+  if (profissionalFiltro) query = query.eq('responsavel_nome', profissionalFiltro);
+
+  const { data, error } = await query;
+
+  if (error) { toast('Erro ao carregar dados financeiros', 'erro'); return; }
+  pagamentosFiltrados = data || [];
+
+  renderizarResumo();
+  renderizarTabelaPagamentos();
+  await renderizarGraficoMensal();
+}
+
+function renderizarResumo() {
+  let totalNegocio = 0, totalProfissional = 0;
+  const porProfissional = {};
+
+  pagamentosFiltrados.forEach(p => {
+    if (p.destino === 'negocio') totalNegocio += Number(p.valor);
+    else {
+      totalProfissional += Number(p.valor);
+      const nome = p.responsavel_nome || 'Sem responsável definido';
+      porProfissional[nome] = (porProfissional[nome] || 0) + Number(p.valor);
+    }
+  });
+
+  document.getElementById('valor-total-negocio').textContent = `R$ ${totalNegocio.toFixed(2)}`;
+  document.getElementById('valor-total-profissionais').textContent = `R$ ${totalProfissional.toFixed(2)}`;
+  document.getElementById('valor-total-geral').textContent = `R$ ${(totalNegocio + totalProfissional).toFixed(2)}`;
+
+  const breakdownEl = document.getElementById('breakdown-profissionais');
+  const nomes = Object.keys(porProfissional);
+  if (!nomes.length) {
+    breakdownEl.innerHTML = '<p class="subtitulo" style="margin:0">Nenhum pagamento a profissional neste período.</p>';
+  } else {
+    breakdownEl.innerHTML = nomes.sort().map(nome => `
+      <div class="linha-breakdown">
+        <span class="nome-prof">${nome}</span>
+        <span class="valor-prof">R$ ${porProfissional[nome].toFixed(2)}</span>
+      </div>`).join('');
+  }
+}
+
+function renderizarTabelaPagamentos() {
+  const corpoEl = document.getElementById('corpo-tabela-pagamentos');
+  if (!pagamentosFiltrados.length) {
+    corpoEl.innerHTML = '<tr><td colspan="6" style="padding:1.5rem; text-align:center; color:var(--ink2)">Nenhum pagamento neste período.</td></tr>';
+    return;
+  }
+  const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+  corpoEl.innerHTML = pagamentosFiltrados.map(p => `
+    <tr>
+      <td>${new Date(p.data_pagamento + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+      <td>${p.clientes ? p.clientes.nome_noiva : '—'}</td>
+      <td>${rotulosTipo[p.tipo] || p.tipo}</td>
+      <td><span class="pill-destino ${p.destino}">${p.destino === 'negocio' ? 'Negócio' : (p.responsavel_nome || 'Profissional')}</span></td>
+      <td>${p.metodo || '—'}</td>
+      <td style="text-align:right; font-family:'DM Mono',monospace">R$ ${Number(p.valor).toFixed(2)}</td>
+    </tr>`).join('');
+}
+
+async function renderizarGraficoMensal() {
+  // últimos 6 meses, independente do filtro de período da tabela
+  const hoje = new Date();
+  const seisAtras = new Date(hoje.getFullYear(), hoje.getMonth() - 5, 1);
+  const { data } = await supabaseClient
+    .from('pagamentos').select('data_pagamento, valor, destino')
+    .gte('data_pagamento', chaveDataFinanceiro(seisAtras));
+
+  const meses = [];
+  const rotulos = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push(d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'));
+    rotulos.push(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', ''));
+  }
+
+  const negocioPorMes = meses.map(() => 0);
+  const profissionalPorMes = meses.map(() => 0);
+  (data || []).forEach(p => {
+    const chave = p.data_pagamento.slice(0, 7);
+    const idx = meses.indexOf(chave);
+    if (idx === -1) return;
+    if (p.destino === 'negocio') negocioPorMes[idx] += Number(p.valor);
+    else profissionalPorMes[idx] += Number(p.valor);
+  });
+
+  const ctx = document.getElementById('grafico-mensal').getContext('2d');
+  if (graficoMensal) graficoMensal.destroy();
+  graficoMensal = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rotulos,
+      datasets: [
+        { label: 'Negócio', data: negocioPorMes, backgroundColor: '#4F9A89', borderRadius: 4 },
+        { label: 'Profissionais', data: profissionalPorMes, backgroundColor: '#B98C55', borderRadius: 4 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, grid: { color: '#E6D9C2' } } },
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { family: 'Montserrat' } } } }
+    }
+  });
+}
+
+document.getElementById('botao-aplicar-periodo').addEventListener('click', carregarResumoFinanceiro);
+
+// ---- EXPORTAÇÃO ----
+function exportarExcelFinanceiro() {
+  if (!pagamentosFiltrados.length) { toast('Nada para exportar neste período', 'erro'); return; }
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  script.onload = () => {
+    const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+    const linhas = [['Data', 'Cliente', 'Tipo', 'Destino', 'Responsável', 'Método', 'Valor (R$)']];
+    pagamentosFiltrados.forEach(p => linhas.push([
+      new Date(p.data_pagamento + 'T12:00:00').toLocaleDateString('pt-BR'),
+      p.clientes ? p.clientes.nome_noiva : '—',
+      rotulosTipo[p.tipo] || p.tipo,
+      p.destino === 'negocio' ? 'Negócio' : 'Profissional',
+      p.responsavel_nome || '—',
+      p.metodo || '—',
+      Number(p.valor).toFixed(2),
+    ]));
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(linhas);
+    ws['!cols'] = [{wch:12},{wch:24},{wch:14},{wch:14},{wch:18},{wch:14},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, ws, 'Pagamentos');
+    const inicio = document.getElementById('financeiro-data-inicio').value;
+    const fim = document.getElementById('financeiro-data-fim').value;
+    XLSX.writeFile(wb, `camarim-financeiro-${inicio}-a-${fim}.xlsx`);
+    toast('Excel baixado', 'sucesso');
+  };
+  document.head.appendChild(script);
+}
+
+function exportarPdfFinanceiro() {
+  if (!pagamentosFiltrados.length) { toast('Nada para exportar neste período', 'erro'); return; }
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  script.onload = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const W = doc.internal.pageSize.getWidth();
+    const inicio = document.getElementById('financeiro-data-inicio').value;
+    const fim = document.getElementById('financeiro-data-fim').value;
+    const teal = [79, 154, 137];
+
+    doc.setFillColor(...teal); doc.rect(0, 0, W, 22, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(14); doc.setFont('helvetica','bold');
+    doc.text('Camarim Mineiro — Relatório Financeiro', 14, 14);
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    doc.text(`Período: ${new Date(inicio+'T12:00:00').toLocaleDateString('pt-BR')} a ${new Date(fim+'T12:00:00').toLocaleDateString('pt-BR')}`, 14, 30);
+
+    let totalNegocio = 0, totalProfissional = 0;
+    pagamentosFiltrados.forEach(p => { if (p.destino === 'negocio') totalNegocio += Number(p.valor); else totalProfissional += Number(p.valor); });
+
+    doc.setFillColor(240,247,245); doc.roundedRect(14, 36, W-28, 20, 2, 2, 'F');
+    doc.setTextColor(40,40,40); doc.setFontSize(9);
+    doc.text(`Total negócio: R$ ${totalNegocio.toFixed(2)}`, 20, 44);
+    doc.text(`Total profissionais: R$ ${totalProfissional.toFixed(2)}`, 20, 51);
+    doc.setFont('helvetica','bold');
+    doc.text(`Total geral: R$ ${(totalNegocio+totalProfissional).toFixed(2)}`, 120, 47);
+
+    let y = 66;
+    const cols = [14, 45, 90, 118, 150, 175];
+    const headers = ['Data', 'Cliente', 'Tipo', 'Destino', 'Método', 'Valor'];
+    doc.setFillColor(...teal); doc.rect(14, y, W-28, 7, 'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(7.5); doc.setFont('helvetica','bold');
+    headers.forEach((h,i) => doc.text(h, cols[i]+1, y+5));
+    y += 9;
+
+    const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
+    pagamentosFiltrados.forEach((p, i) => {
+      if (y > 275) { doc.addPage(); y = 20; }
+      if (i % 2 === 0) { doc.setFillColor(248,250,248); doc.rect(14, y-1, W-28, 7, 'F'); }
+      doc.setTextColor(40,40,40);
+      doc.text(new Date(p.data_pagamento+'T12:00:00').toLocaleDateString('pt-BR'), cols[0], y+4);
+      doc.text((p.clientes ? p.clientes.nome_noiva : '—').substring(0,20), cols[1], y+4);
+      doc.text(rotulosTipo[p.tipo] || p.tipo, cols[2], y+4);
+      doc.text(p.destino === 'negocio' ? 'Negócio' : (p.responsavel_nome || 'Profissional').substring(0,14), cols[3], y+4);
+      doc.text(p.metodo || '—', cols[4], y+4);
+      doc.setFont('helvetica','bold');
+      doc.text(`R$ ${Number(p.valor).toFixed(2)}`, cols[5], y+4);
+      doc.setFont('helvetica','normal');
+      y += 7;
+    });
+
+    doc.save(`camarim-financeiro-${inicio}-a-${fim}.pdf`);
+    toast('PDF baixado', 'sucesso');
+  };
+  document.head.appendChild(script);
+}
+
+document.getElementById('botao-exportar-excel').addEventListener('click', exportarExcelFinanceiro);
+document.getElementById('botao-exportar-pdf').addEventListener('click', exportarPdfFinanceiro);
+
+document.getElementById('financeiro-filtro-profissional').addEventListener('change', carregarResumoFinanceiro);
+
+(async function iniciar() {
+  const ok = await protegerRota();
+  if (ok) {
+    definirPeriodoPadrao();
+    await carregarServicos();
+    await carregarListaProfissionais();
+    await carregarResumoFinanceiro();
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

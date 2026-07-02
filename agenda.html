@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda — Camarim Mineiro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3A7A6C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camarim Mineiro">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CAMARIM MINEIRO — Sistema de design
+   Estrutura inspirada no Vicaf (superfícies em camadas, raio
+   generoso, PIN por teclado, toasts) — em tom marfim/verde-água/
+   dourado, com Cormorant Garamond + Montserrat da marca.
+   ============================================================ */
+
+:root {
+  --bg: #FAF6EF;
+  --surface: #FFFFFF;
+  --surface2: #F4EBDC;
+  --surface3: #EDE1CC;
+  --border: #E6D9C2;
+  --teal: #4F9A89;
+  --teal-dim: #E4F1EC;
+  --teal-deep: #3A7A6C;
+  --gold: #B98C55;
+  --gold-dim: #F5E9D6;
+  --ink: #2C2620;
+  --ink2: #8C8072;
+  --ink3: #B8AC9B;
+  --red: #B3564A;
+  --red-dim: #F6E2DF;
+  --white: #FFFFFF;
+  --radius: 18px;
+  --radius-sm: 11px;
+  --shadow: 0 1px 3px rgba(44, 38, 32, 0.05);
+  --shadow-card: 0 18px 40px -18px rgba(44, 38, 32, 0.22);
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.mono { font-family: 'DM Mono', monospace; }
+
+.subtitulo {
+  color: var(--ink2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1.6rem;
+}
+
+.oculto { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ============================================================
+   MARCA
+   ============================================================ */
+.diamante { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+
+.marca-diamante {
+  width: 40px; height: 40px;
+  background: var(--teal);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 0.8rem;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  flex-shrink: 0;
+}
+
+.marca-lockup { text-align: center; margin-bottom: 1.6rem; }
+.marca-lockup .marca-diamante { width: 64px; height: 64px; font-size: 1.15rem; margin: 0 auto 0.85rem; box-shadow: var(--shadow-card); }
+.marca-lockup .marca-wordmark {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--ink);
+}
+
+/* ============================================================
+   TELA CHEIA / CARD DE AUTENTICAÇÃO
+   ============================================================ */
+.tela-cheia {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem;
+}
+
+.cartao {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 2.5rem 2.25rem;
+  width: 100%; max-width: 400px;
+  text-align: center;
+}
+
+.cartao h1 { font-size: 1.9rem; }
+
+form { display: flex; flex-direction: column; text-align: left; gap: 0.25rem; }
+
+label { font-size: 0.76rem; font-weight: 600; color: var(--ink2); margin-top: 0.85rem; }
+
+input, select, textarea {
+  font-family: 'Montserrat', sans-serif;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--surface2);
+  color: var(--ink);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+input::placeholder { color: var(--ink3); }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--teal); background: var(--white); box-shadow: 0 0 0 3px var(--teal-dim);
+}
+
+.botao-principal {
+  margin-top: 1.5rem; padding: 0.85rem;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--teal-deep); color: var(--white);
+  font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  transition: background var(--transition), transform 120ms;
+}
+.botao-principal:hover { background: var(--teal); }
+.botao-principal:active { transform: scale(0.98); }
+.botao-principal:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.botao-texto {
+  background: none; border: none; color: var(--ink2);
+  font-size: 0.83rem; cursor: pointer; margin-top: 0.8rem; text-decoration: underline;
+}
+.botao-texto:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: 2px; }
+
+.erro { color: var(--red); font-size: 0.83rem; min-height: 1.2em; margin-top: 0.55rem; }
+
+.lista-perfis { display: flex; flex-direction: column; gap: 0.6rem; }
+.botao-perfil {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.85rem 1.05rem;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; color: var(--ink);
+  cursor: pointer; text-align: left;
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+}
+.botao-perfil::before {
+  content: ''; width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.botao-perfil:hover { border-color: var(--teal); background: var(--white); transform: translateX(2px); }
+
+/* ============================================================
+   PIN — teclado numérico
+   ============================================================ */
+.pin-avatar {
+  width: 60px; height: 60px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 0.9rem;
+}
+.pin-dots { display: flex; gap: 14px; justify-content: center; margin: 1.4rem 0 1.6rem; }
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border); background: transparent;
+  transition: all 120ms;
+}
+.pin-dot.preenchido { background: var(--teal-deep); border-color: var(--teal-deep); }
+.pin-dot.erro { background: var(--red); border-color: var(--red); }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 0.5rem; }
+.pin-key {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 15px 0;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.35rem; font-weight: 600;
+  cursor: pointer; color: var(--ink); transition: all 100ms;
+}
+.pin-key:active { transform: scale(0.94); background: var(--teal-dim); border-color: var(--teal); }
+.pin-key.apagar { font-size: 1rem; font-family: 'Montserrat', sans-serif; color: var(--ink2); }
+.pin-key.vazio { background: transparent; border-color: transparent; cursor: default; }
+.pin-keypad[aria-disabled="true"] { opacity: 0.35; pointer-events: none; }
+
+/* ============================================================
+   APP PRINCIPAL
+   ============================================================ */
+.tela-app { min-height: 100vh; }
+
+.cabecalho-app {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.05rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.marca-horizontal { display: flex; align-items: center; gap: 0.65rem; }
+.marca-diamante-pequena { width: 32px; height: 32px; font-size: 0.65rem; }
+.marca-nome {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink);
+}
+
+.nav-app { display: flex; gap: 0.4rem; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); }
+.nav-link {
+  font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-decoration: none;
+  padding: 0.5rem 1.1rem; border-radius: 8px; transition: all var(--transition);
+}
+.nav-link.ativo { color: var(--white); background: var(--teal-deep); }
+.nav-link:hover:not(.ativo) { color: var(--ink); }
+
+.usuario-ativo { display: flex; align-items: center; gap: 1.1rem; font-size: 0.85rem; color: var(--ink2); }
+.usuario-ativo #nome-usuario-ativo { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--ink); }
+
+.conteudo-principal { max-width: 1100px; margin: 0 auto; padding: 2.6rem 2rem 4rem; }
+
+.barra-acoes { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.3rem; }
+.barra-acoes h1 { font-size: 2rem; }
+.botao-pequeno { margin-top: 0; width: auto; padding: 0.68rem 1.3rem; }
+
+.filtros {
+  display: flex; flex-wrap: wrap; gap: 6px; margin: 1.6rem 0 2rem;
+  background: var(--surface2); padding: 5px; border-radius: var(--radius-sm); width: fit-content;
+}
+.filtro {
+  padding: 0.42rem 1rem; border-radius: 8px; border: none;
+  background: transparent; color: var(--ink2);
+  font-size: 0.76rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.filtro.ativo { background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+.filtro:hover:not(.ativo) { color: var(--ink); }
+
+.lista-clientes { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+.cartao-cliente {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.35rem 1.45rem; cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+}
+.cartao-cliente:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-2px); }
+
+.cartao-cliente-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.6rem; margin-bottom: 0.6rem; }
+.cartao-cliente-topo h3 { font-size: 1.25rem; font-weight: 600; }
+.cartao-cliente-info { font-size: 0.83rem; color: var(--ink2); margin: 0.28rem 0; }
+
+.etiqueta {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+  padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+}
+.etiqueta::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.etiqueta-contato { color: #8A7F6E; background: #F1ECE3; }
+.etiqueta-orcamento { color: #96702F; background: #F3E7D2; }
+.etiqueta-confirmada { color: var(--teal-deep); background: var(--teal-dim); }
+.etiqueta-concluida { color: var(--white); background: var(--teal-deep); }
+.etiqueta-cancelada { color: var(--red); background: var(--red-dim); }
+
+.estado-vazio { grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: var(--ink2); }
+.estado-vazio .marca-diamante { width: 38px; height: 38px; margin: 0 auto 1.1rem; opacity: 0.6; }
+.estado-vazio p { font-size: 0.9rem; }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-fundo {
+  position: fixed; inset: 0; background: rgba(44, 38, 32, 0.45);
+  display: flex; align-items: center; justify-content: center; padding: 1.5rem; z-index: 100;
+}
+.modal-caixa {
+  background: var(--surface); border-radius: var(--radius); padding: 1.9rem 2.1rem 2.1rem;
+  width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--shadow-card);
+}
+.modal-cabecalho { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.2rem; padding-bottom: 1.05rem; border-bottom: 1px solid var(--border); }
+.modal-cabecalho h2 { font-size: 1.5rem; }
+.botao-fechar { background: var(--surface2); border: none; width: 28px; height: 28px; border-radius: 50%; font-size: 1.1rem; color: var(--ink2); cursor: pointer; }
+.botao-fechar:hover { color: var(--ink); }
+
+.linha-form { display: flex; gap: 1rem; }
+.campo-form { flex: 1; }
+textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
+
+.modal-rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.05rem; border-top: 1px solid var(--border); }
+.modal-rodape .botao-principal { margin-top: 0; }
+#botao-excluir-cliente { color: var(--red); margin-top: 0; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--white);
+  border-radius: 999px; padding: 0.7rem 1.3rem; font-size: 0.85rem; font-weight: 500;
+  z-index: 300; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap; box-shadow: var(--shadow-card);
+}
+.toast.mostrar { transform: translateX(-50%) translateY(0); }
+.toast.sucesso { background: var(--teal-deep); }
+.toast.erro { background: var(--red); }
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+@media (max-width: 860px) {
+  .cabecalho-app { flex-wrap: wrap; gap: 0.85rem; padding: 1rem 1.25rem; }
+  .nav-app { order: 3; width: 100%; justify-content: space-between; }
+  .conteudo-principal { padding: 2rem 1.25rem 3rem; }
+}
+@media (max-width: 480px) {
+  .cartao { padding: 2.1rem 1.5rem; }
+  .linha-form { flex-direction: column; gap: 0; }
+  .barra-acoes { flex-direction: column; align-items: flex-start; gap: 0.9rem; }
+  .pin-keypad { gap: 8px; }
+}
+
+/* ============================================================
+   MENU PRINCIPAL (HUB) — Agenda / Clientes / Financeiro
+   ============================================================ */
+.menu-hub {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.1rem;
+  max-width: 900px;
+  margin: 1rem auto 0;
+}
+.cartao-hub {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.6rem;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+  font-family: 'Montserrat', sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.cartao-hub:hover { box-shadow: var(--shadow-card); border-color: var(--teal); transform: translateY(-3px); }
+.cartao-hub-icone {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--teal-dim); color: var(--teal-deep);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; font-weight: 600;
+}
+.cartao-hub h2 { font-size: 1.4rem; }
+.cartao-hub p { font-size: 0.85rem; color: var(--ink2); margin: 0; line-height: 1.5; }
+
+.saudacao-hub { text-align: center; margin-bottom: 0.5rem; }
+.saudacao-hub .rotulo-eyebrow-simples { font-size: 0.75rem; color: var(--ink2); letter-spacing: 0.05em; text-transform: uppercase; }
+.saudacao-hub h1 { font-size: 2.1rem; margin-top: 0.3rem; }
+
+.sub-tela { }
+.sub-tela.oculto { display: none !important; }
+
+.botao-voltar-menu {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.8rem; font-weight: 600; color: var(--ink2);
+  background: none; border: none; cursor: pointer; margin-bottom: 1.2rem;
+  padding: 0;
+}
+.botao-voltar-menu:hover { color: var(--ink); }
+
+.placeholder-secao {
+  text-align: center;
+  padding: 4.5rem 1rem;
+  color: var(--ink2);
+}
+.placeholder-secao .marca-diamante { width: 44px; height: 44px; margin: 0 auto 1.2rem; opacity: 0.55; }
+.placeholder-secao h2 { font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--ink); }
+.placeholder-secao p { font-size: 0.88rem; max-width: 340px; margin: 0 auto; }
+
+/* ============================================================
+   CALENDÁRIO (Agenda) — visual estilo Google Calendar
+   ============================================================ */
+.calendario-cabecalho {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 1rem; margin-bottom: 1.6rem;
+}
+.calendario-titulo-grupo { display: flex; align-items: center; gap: 0.9rem; }
+.calendario-titulo-grupo h1 { font-size: 1.9rem; min-width: 220px; text-transform: capitalize; }
+.calendario-nav { display: flex; gap: 0.4rem; }
+.calendario-nav-botao {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--ink2); font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.calendario-nav-botao:hover { border-color: var(--teal); color: var(--ink); }
+.calendario-acoes { display: flex; gap: 0.6rem; align-items: center; }
+.botao-hoje {
+  padding: 0.5rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink2); font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.botao-hoje:hover { border-color: var(--teal); color: var(--ink); }
+
+.legenda-tipos { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.legenda-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; color: var(--ink2); }
+.legenda-cor { width: 9px; height: 9px; border-radius: 3px; }
+
+.calendario-grade-semana {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--border); margin-bottom: 2px;
+}
+.calendario-dia-semana-nome {
+  text-align: center; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink3); padding: 0.5rem 0;
+}
+
+.calendario-grade {
+  display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(108px, auto);
+  gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+}
+.calendario-celula {
+  background: var(--surface); padding: 0.4rem 0.4rem 0.3rem; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px; transition: background var(--transition);
+  position: relative;
+}
+.calendario-celula:hover { background: var(--surface2); }
+.calendario-celula.fora-do-mes { background: var(--bg); }
+.calendario-celula.fora-do-mes .calendario-numero-dia { color: var(--ink3); }
+.calendario-numero-dia {
+  font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--ink2);
+  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+}
+.calendario-celula.hoje .calendario-numero-dia {
+  background: var(--teal-deep); color: var(--white); border-radius: 50%; font-weight: 500;
+}
+.evento-chip {
+  font-size: 0.66rem; font-weight: 500; padding: 2px 6px; border-radius: 5px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; transition: opacity var(--transition);
+}
+.evento-chip:hover { opacity: 0.8; }
+.evento-chip .hora-evento { font-family: 'DM Mono', monospace; font-weight: 600; margin-right: 3px; }
+.evento-mais { font-size: 0.66rem; color: var(--ink3); padding: 0 4px; cursor: pointer; }
+
+/* cores por profissional */
+:root {
+  --prof-tami: #7B68A6; --prof-tami-bg: #F0EAF7;
+  --prof-stefania: #3E6E96; --prof-stefania-bg: #E7F0F8;
+  --prof-outra: #B85C7D; --prof-outra-bg: #F8E8EE;
+  --prof-nenhum: #8C8072; --prof-nenhum-bg: #EDE1CC;
+}
+.evento-chip-prof-tami { background: var(--prof-tami-bg); color: var(--prof-tami); }
+.evento-chip-prof-stefania { background: var(--prof-stefania-bg); color: var(--prof-stefania); }
+.evento-chip-prof-outra { background: var(--prof-outra-bg); color: var(--prof-outra); }
+.evento-chip-prof-nenhum { background: var(--prof-nenhum-bg); color: var(--prof-nenhum); }
+
+.ponto-prof-tami { background: var(--prof-tami); }
+.ponto-prof-stefania { background: var(--prof-stefania); }
+.ponto-prof-outra { background: var(--prof-outra); }
+.ponto-prof-nenhum { background: var(--prof-nenhum); }
+
+@media (max-width: 700px) {
+  .calendario-grade { grid-auto-rows: minmax(70px, auto); }
+  .calendario-numero-dia { font-size: 0.7rem; }
+  .evento-chip { font-size: 0.6rem; padding: 1px 4px; }
+  .calendario-dia-semana-nome { font-size: 0.6rem; }
+}
+
+/* ============================================================
+   CATÁLOGO DE SERVIÇOS (Financeiro)
+   ============================================================ */
+.lista-servicos { display: flex; flex-direction: column; gap: 0.6rem; }
+.linha-servico {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; cursor: pointer; transition: border-color var(--transition);
+}
+.linha-servico:hover { border-color: var(--teal); }
+.linha-servico.inativo { opacity: 0.5; }
+.linha-servico-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; }
+.linha-servico-direita { display: flex; align-items: center; gap: 0.9rem; }
+.linha-servico-valor { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--teal-deep); font-weight: 500; }
+.etiqueta-inativo { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; color: var(--ink3); background: var(--surface2); padding: 0.2rem 0.55rem; border-radius: 999px; }
+
+/* checklist de serviços no formulário de cliente */
+.lista-servicos-checklist { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.4rem; max-height: 220px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.6rem; background: var(--surface2); }
+.item-servico-checklist { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem 0.3rem; font-size: 0.88rem; }
+.item-servico-checklist input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.item-servico-checklist label { flex: 1; margin: 0; font-size: 0.88rem; font-weight: 400; color: var(--ink); text-transform: none; letter-spacing: 0; cursor: pointer; }
+.item-servico-checklist .valor-servico-checklist { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--ink2); }
+.total-servicos-selecionados {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--border);
+  font-size: 0.9rem; font-weight: 600;
+}
+.total-servicos-selecionados .valor-total { font-family: 'DM Mono', monospace; color: var(--teal-deep); font-size: 1.05rem; }
+
+/* responsável: Tami / Ste / Outra */
+.opcoes-responsavel { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.opcao-responsavel {
+  flex: 1; padding: 0.55rem 0.4rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-responsavel.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+
+.opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
+.opcao-tipo-cliente {
+  flex: 1; padding: 0.7rem 0.5rem; text-align: center; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.opcao-tipo-cliente.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+.grupo-fornecedores {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem; margin-top: 0.6rem;
+}
+.grupo-fornecedores .rotulo-eyebrow-simples { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); display: block; margin-bottom: 0.6rem; }
+
+/* checklist de serviços com quantidade (agendamento) */
+.item-servico-evento {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 0.6rem; padding: 0.5rem 0.3rem; font-size: 0.85rem; border-bottom: 1px solid var(--border);
+}
+.item-servico-evento:last-child { border-bottom: none; }
+.item-servico-evento-info { flex: 1; min-width: 0; }
+.item-servico-evento-nome { color: var(--ink); }
+.item-servico-evento-valor { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--ink2); }
+.controle-quantidade { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.botao-quantidade {
+  width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink2); font-size: 0.9rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  transition: all var(--transition);
+}
+.botao-quantidade:hover { border-color: var(--teal-deep); color: var(--ink); }
+.valor-quantidade { font-family: 'DM Mono', monospace; min-width: 18px; text-align: center; font-size: 0.85rem; font-weight: 600; }
+
+/* seção de pagamento no evento */
+.secao-pagamento {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 1rem 1.1rem; margin-top: 1rem;
+}
+.secao-pagamento-titulo { font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.7rem; }
+.linha-pagamento-sinal {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.85rem; color: var(--ink); background: var(--surface); border-radius: 8px;
+  padding: 0.55rem 0.8rem; margin-bottom: 0.7rem;
+}
+.linha-pagamento-sinal .valor-sinal-destaque { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+.check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
+.campo-metodo-pagamento { margin-left: 24px; margin-bottom: 0.6rem; }
+.campo-metodo-pagamento select { width: 100%; }
+</style>
+</head>
+<body>
+
+<header class="cabecalho-app">
+  <div class="marca marca-horizontal">
+    <div class="marca-diamante marca-diamante-pequena">CM</div>
+    <span class="marca-nome">Camarim Mineiro</span>
+  </div>
+  <nav class="nav-app">
+    <a href="index.html" class="nav-link">Menu</a>
+    <a href="agenda.html" class="nav-link ativo">Agenda</a>
+    <a href="clientes.html" class="nav-link">Clientes</a>
+    <a href="financeiro.html" class="nav-link">Financeiro</a>
+  </nav>
+  <div class="usuario-ativo">
+    <span id="nome-usuario-ativo"></span>
+    <button class="botao-texto" id="botao-trocar-perfil">Trocar</button>
+    <button class="botao-texto" id="botao-sair">Sair</button>
+  </div>
+</header>
+
+<main class="conteudo-principal">
+
+  <div class="calendario-cabecalho">
+    <div class="calendario-titulo-grupo">
+      <h1 id="calendario-mes-ano">—</h1>
+      <div class="calendario-nav">
+        <button class="calendario-nav-botao" id="calendario-anterior">‹</button>
+        <button class="calendario-nav-botao" id="calendario-proximo">›</button>
+      </div>
+    </div>
+    <div class="calendario-acoes">
+      <button class="botao-hoje" id="botao-hoje">Hoje</button>
+      <button class="botao-principal botao-pequeno" id="botao-novo-evento">+ Adicionar cliente</button>
+    </div>
+  </div>
+
+  <div class="legenda-tipos" id="legenda-tipos"></div>
+
+  <div class="calendario-grade-semana">
+    <div class="calendario-dia-semana-nome">Dom</div>
+    <div class="calendario-dia-semana-nome">Seg</div>
+    <div class="calendario-dia-semana-nome">Ter</div>
+    <div class="calendario-dia-semana-nome">Qua</div>
+    <div class="calendario-dia-semana-nome">Qui</div>
+    <div class="calendario-dia-semana-nome">Sex</div>
+    <div class="calendario-dia-semana-nome">Sáb</div>
+  </div>
+  <div class="calendario-grade" id="calendario-grade"></div>
+
+</main>
+
+<div class="modal-fundo oculto" id="modal-evento">
+  <div class="modal-caixa">
+    <div class="modal-cabecalho">
+      <h2 id="modal-evento-titulo">Adicionar cliente</h2>
+      <button class="botao-fechar" id="botao-fechar-modal-evento">×</button>
+    </div>
+    <form id="form-evento">
+      <input type="hidden" id="evento-id">
+
+      <label for="evento-titulo">Título *</label>
+      <input type="text" id="evento-titulo" required placeholder="Ex: Prova de maquiagem — Ana">
+
+      <div class="linha-form">
+        <div class="campo-form">
+          <label for="evento-tipo">Tipo</label>
+          <select id="evento-tipo">
+            <option value="prova">Prova</option>
+            <option value="dia_casamento">Dia do casamento</option>
+            <option value="consulta">Consulta</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="campo-form">
+          <label for="evento-cliente">Cliente</label>
+          <select id="evento-cliente"><option value="">Nenhum</option></select>
+        </div>
+      </div>
+
+      <div class="linha-form">
+        <div class="campo-form">
+          <label for="evento-data">Data *</label>
+          <input type="date" id="evento-data" required>
+        </div>
+        <div class="campo-form">
+          <label for="evento-hora-inicio">Início *</label>
+          <input type="time" id="evento-hora-inicio" required>
+        </div>
+        <div class="campo-form">
+          <label for="evento-hora-fim">Fim</label>
+          <input type="time" id="evento-hora-fim">
+        </div>
+      </div>
+
+      <label for="evento-local">Local</label>
+      <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
+
+      <label>Responsável</label>
+      <div class="opcoes-responsavel">
+        <div class="opcao-responsavel" data-valor="Tami">Tami</div>
+        <div class="opcao-responsavel" data-valor="Stefania">Stefania</div>
+        <div class="opcao-responsavel" data-valor="Outra">Outra</div>
+      </div>
+      <input type="text" id="evento-responsavel-outra" placeholder="Nome de quem vai atender" class="oculto" style="margin-top:0.5rem">
+
+      <label for="evento-observacoes">Observações</label>
+      <textarea id="evento-observacoes" rows="3"></textarea>
+
+      <div class="secao-pagamento">
+        <div class="secao-pagamento-titulo">Serviços do agendamento</div>
+        <div class="lista-servicos-checklist" id="lista-servicos-evento" style="max-height:180px">
+          <p class="subtitulo" style="margin:0.3rem 0 0">Carregando...</p>
+        </div>
+
+        <div class="linha-pagamento-sinal" style="margin-top:0.8rem">
+          <span>Subtotal dos serviços</span>
+          <span class="valor-sinal-destaque" id="valor-subtotal-evento-display">R$ 0.00</span>
+        </div>
+
+        <label for="evento-desconto">Desconto (R$)</label>
+        <input type="number" id="evento-desconto" step="0.01" min="0" placeholder="0.00">
+
+        <div class="linha-pagamento-sinal" style="margin-top:0.8rem">
+          <span>Valor total (com desconto)</span>
+          <span class="valor-sinal-destaque" id="valor-total-evento-display">R$ 0.00</span>
+        </div>
+        <div class="linha-pagamento-sinal">
+          <span>Sinal (20% — vai para o negócio)</span>
+          <span class="valor-sinal-destaque" id="valor-sinal-calculado">R$ 0.00</span>
+        </div>
+        <div class="linha-pagamento-sinal">
+          <span>Saldo (80% — vai para a profissional)</span>
+          <span class="valor-sinal-destaque" id="valor-saldo-calculado">R$ 0.00</span>
+        </div>
+
+        <div class="check-pagamento">
+          <input type="checkbox" id="evento-sinal-pago">
+          <label for="evento-sinal-pago">Sinal já foi pago</label>
+        </div>
+        <div class="campo-metodo-pagamento oculto" id="campo-sinal-metodo">
+          <select id="evento-sinal-metodo">
+            <option value="pix">Pix</option>
+            <option value="transferencia">Transferência</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="cartao">Cartão</option>
+          </select>
+        </div>
+
+        <div class="check-pagamento">
+          <input type="checkbox" id="evento-saldo-pago">
+          <label for="evento-saldo-pago">Saldo pago no dia</label>
+        </div>
+        <div class="campo-metodo-pagamento oculto" id="campo-saldo-metodo">
+          <select id="evento-saldo-metodo">
+            <option value="pix">Pix</option>
+            <option value="transferencia">Transferência</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="cartao">Cartão</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-rodape">
+        <button type="button" class="botao-texto" id="botao-excluir-evento">Excluir</button>
+        <button type="submit" class="botao-principal">Salvar</button>
+      </div>
+      <p class="erro" id="erro-evento"></p>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CLIENTE SUPABASE
+// Substitua os valores abaixo pelos do seu projeto:
+// Supabase Dashboard → Project Settings → API
+// - Project URL
+// - anon public key (NÃO é a service_role — essa nunca vai no frontend)
+// ============================================================
+
+const SUPABASE_URL = 'https://llhccvbovuzifsikvekz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsaGNjdmJvdnV6aWZzaWt2ZWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTY0MzIsImV4cCI6MjA5ODQ5MjQzMn0.9PCEjmF8R_MxVh24XOngaY7ZwyYGOEMcyDKDtpkPPUY';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ============================================================
+// AUTENTICAÇÃO
+// Fluxo:
+// 1. Login único compartilhado (Supabase Auth)
+// 2. Seleção de perfil (Tami / Stefania) + PIN — identificação leve,
+//    guardada em localStorage. Não é uma camada de segurança real,
+//    serve só para saber quem criou/editou cada registro.
+// ============================================================
+
+const STORAGE_KEY = 'camarim_perfil_ativo';
+
+// ---- Hash simples do PIN (SHA-256) — suficiente para identificação, não é senha ----
+async function hashPin(pin) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(pin);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ---- Sessão Supabase ----
+async function getSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data.session;
+}
+
+async function signIn(email, password) {
+  const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return data;
+}
+
+async function signOutCompleto() {
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Perfil ativo (Tami / Stefania) ----
+function getPerfilAtivo() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+function setPerfilAtivo(perfil) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ id: perfil.id, nome: perfil.nome }));
+}
+
+function trocarPerfil() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+// ---- Buscar perfis existentes ----
+async function buscarPerfis() {
+  const { data, error } = await supabaseClient.from('perfis').select('id, nome, pin_hash');
+  if (error) throw error;
+  return data;
+}
+
+// ---- Criar um novo perfil (primeiro acesso) ----
+async function criarPerfil(nome, pin) {
+  const pin_hash = await hashPin(pin);
+  const { data, error } = await supabaseClient
+    .from('perfis')
+    .insert({ nome, pin_hash })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+// ---- Verificar PIN de um perfil ----
+async function verificarPin(perfil, pinDigitado) {
+  const hash = await hashPin(pinDigitado);
+  return hash === perfil.pin_hash;
+}
+// ============================================================
+// UI.JS — Utilitário de toast compartilhado entre páginas
+// ============================================================
+
+function toast(mensagem, tipo = 'sucesso') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = mensagem;
+  el.className = 'toast mostrar ' + tipo;
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => {
+    el.classList.remove('mostrar');
+  }, 2800);
+}
+
+async function protegerRota() {
+  const sessao = await getSession();
+  if (!sessao) { window.location.href = 'index.html'; return false; }
+  const perfil = getPerfilAtivo();
+  if (!perfil) { window.location.href = 'index.html'; return false; }
+  document.getElementById('nome-usuario-ativo').textContent = perfil.nome;
+  return true;
+}
+document.getElementById('botao-trocar-perfil').addEventListener('click', trocarPerfil);
+document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
+
+// ============================================================
+// AGENDA — calendário mensal ligado à tabela eventos_calendario
+// ============================================================
+
+const NOMES_MES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const NOMES_DIA_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const ROTULOS_TIPO = { prova: 'Prova', dia_casamento: 'Dia do casamento', consulta: 'Consulta', outro: 'Outro' };
+
+let mesAtual = new Date();
+mesAtual.setDate(1);
+let eventosCache = [];
+let clientesCacheAgenda = [];
+let perfisCacheAgenda = [];
+
+function chaveData(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+let catalogoServicosAgenda = [];
+let quantidadesServicoEvento = {};
+
+async function carregarClientesEPerfis() {
+  const { data: clientes } = await supabaseClient.from('clientes').select('id, nome_noiva, tipo_cliente, endereco').order('nome_noiva');
+  clientesCacheAgenda = clientes || [];
+  const selectCliente = document.getElementById('evento-cliente');
+  selectCliente.innerHTML = '<option value="">Nenhum (evento interno)</option>' +
+    clientesCacheAgenda.map(c => `<option value="${c.id}">${c.nome_noiva}</option>`).join('');
+
+  const { data: servicos } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
+  catalogoServicosAgenda = servicos || [];
+}
+
+function renderizarChecklistServicosEvento() {
+  const containerEl = document.getElementById('lista-servicos-evento');
+  if (!catalogoServicosAgenda.length) {
+    containerEl.innerHTML = '<p class="subtitulo" style="margin:0.3rem 0 0">Nenhum serviço cadastrado ainda — adicione em Financeiro.</p>';
+    return;
+  }
+  containerEl.innerHTML = catalogoServicosAgenda.map(s => {
+    const qtd = quantidadesServicoEvento[s.id] || 0;
+    return `
+    <div class="item-servico-evento">
+      <div class="item-servico-evento-info">
+        <div class="item-servico-evento-nome">${s.nome}</div>
+        <div class="item-servico-evento-valor">R$ ${Number(s.valor).toFixed(2)}</div>
+      </div>
+      <div class="controle-quantidade">
+        <button type="button" class="botao-quantidade" data-acao="menos" data-id="${s.id}">−</button>
+        <span class="valor-quantidade" id="qtd-display-${s.id}">${qtd}</span>
+        <button type="button" class="botao-quantidade" data-acao="mais" data-id="${s.id}">+</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  containerEl.querySelectorAll('.botao-quantidade').forEach(botao => {
+    botao.addEventListener('click', () => {
+      const id = botao.dataset.id;
+      const atual = quantidadesServicoEvento[id] || 0;
+      const novo = botao.dataset.acao === 'mais' ? atual + 1 : Math.max(0, atual - 1);
+      quantidadesServicoEvento[id] = novo;
+      document.getElementById(`qtd-display-${id}`).textContent = novo;
+      calcularSinal();
+    });
+  });
+}
+
+document.getElementById('evento-cliente').addEventListener('change', (e) => {
+  const cliente = clientesCacheAgenda.find(c => c.id === e.target.value);
+  const campoLocal = document.getElementById('evento-local');
+  const tiposComEndereco = ['social', 'empresa'];
+  if (cliente && tiposComEndereco.includes(cliente.tipo_cliente) && cliente.endereco && !campoLocal.value.trim()) {
+    campoLocal.value = cliente.endereco;
+  }
+});
+
+// ---- RESPONSÁVEL (Tami / Stefania / Outra) ----
+let responsavelEventoSelecionado = '';
+
+function configurarSeletorResponsavelEvento() {
+  document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(botao => {
+    botao.addEventListener('click', () => {
+      document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
+      botao.classList.add('selecionado');
+      responsavelEventoSelecionado = botao.dataset.valor;
+      const campoOutra = document.getElementById('evento-responsavel-outra');
+      if (responsavelEventoSelecionado === 'Outra') { campoOutra.classList.remove('oculto'); campoOutra.focus(); }
+      else { campoOutra.classList.add('oculto'); }
+    });
+  });
+}
+configurarSeletorResponsavelEvento();
+
+function definirResponsavelEventoNoFormulario(nomeSalvo) {
+  document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
+  document.getElementById('evento-responsavel-outra').classList.add('oculto');
+  document.getElementById('evento-responsavel-outra').value = '';
+  if (nomeSalvo === 'Tami' || nomeSalvo === 'Stefania') {
+    responsavelEventoSelecionado = nomeSalvo;
+    document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${nomeSalvo}"]`).classList.add('selecionado');
+  } else if (nomeSalvo) {
+    responsavelEventoSelecionado = 'Outra';
+    document.querySelector('#modal-evento .opcao-responsavel[data-valor="Outra"]').classList.add('selecionado');
+    document.getElementById('evento-responsavel-outra').classList.remove('oculto');
+    document.getElementById('evento-responsavel-outra').value = nomeSalvo;
+  } else {
+    responsavelEventoSelecionado = '';
+  }
+}
+
+function obterNomeResponsavelEventoFinal() {
+  if (responsavelEventoSelecionado === 'Outra') {
+    return document.getElementById('evento-responsavel-outra').value.trim() || null;
+  }
+  return responsavelEventoSelecionado || null;
+}
+
+async function carregarEventosDoMes() {
+  const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 25);
+  const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 5);
+  const { data, error } = await supabaseClient
+    .from('eventos_calendario')
+    .select('*')
+    .gte('data_inicio', inicio.toISOString())
+    .lte('data_inicio', fim.toISOString())
+    .order('data_inicio', { ascending: true });
+  if (error) { toast('Erro ao carregar agenda', 'erro'); eventosCache = []; return; }
+  eventosCache = data;
+}
+
+function chaveCorProfissional(nome) {
+  if (!nome) return 'nenhum';
+  if (nome === 'Tami') return 'tami';
+  if (nome === 'Stefania') return 'stefania';
+  return 'outra';
+}
+
+function renderizarLegendaProfissionais() {
+  const nomes = new Set(['Tami', 'Stefania']);
+  eventosCache.forEach(ev => { if (ev.responsavel_nome) nomes.add(ev.responsavel_nome); });
+  const legendaEl = document.getElementById('legenda-tipos');
+  legendaEl.innerHTML = Array.from(nomes).map(nome => `
+    <div class="legenda-item">
+      <span class="legenda-cor ponto-prof-${chaveCorProfissional(nome)}"></span>${nome}
+    </div>`).join('');
+}
+
+function escaparHtmlAgenda(texto) {
+  const div = document.createElement('div');
+  div.textContent = texto || '';
+  return div.innerHTML;
+}
+
+function renderizarCalendario() {
+  renderizarLegendaProfissionais();
+  document.getElementById('calendario-mes-ano').textContent =
+    `${NOMES_MES[mesAtual.getMonth()]} ${mesAtual.getFullYear()}`;
+
+  const primeiroDiaMes = new Date(mesAtual.getFullYear(), mesAtual.getMonth(), 1);
+  const inicioGrade = new Date(primeiroDiaMes);
+  inicioGrade.setDate(inicioGrade.getDate() - inicioGrade.getDay());
+
+  const hoje = new Date();
+  const hojeChave = chaveData(hoje);
+
+  const eventosPorDia = {};
+  eventosCache.forEach(ev => {
+    const dataEv = new Date(ev.data_inicio);
+    const chave = chaveData(dataEv);
+    if (!eventosPorDia[chave]) eventosPorDia[chave] = [];
+    eventosPorDia[chave].push(ev);
+  });
+
+  const gradeEl = document.getElementById('calendario-grade');
+  gradeEl.innerHTML = '';
+
+  for (let i = 0; i < 42; i++) {
+    const dia = new Date(inicioGrade);
+    dia.setDate(dia.getDate() + i);
+    const chave = chaveData(dia);
+    const foraDoMes = dia.getMonth() !== mesAtual.getMonth();
+    const ehHoje = chave === hojeChave;
+
+    const celula = document.createElement('div');
+    celula.className = 'calendario-celula' + (foraDoMes ? ' fora-do-mes' : '') + (ehHoje ? ' hoje' : '');
+
+    const numero = document.createElement('div');
+    numero.className = 'calendario-numero-dia';
+    numero.textContent = dia.getDate();
+    celula.appendChild(numero);
+
+    const eventosDoDia = eventosPorDia[chave] || [];
+    const visiveis = eventosDoDia.slice(0, 3);
+    visiveis.forEach(ev => {
+      const chip = document.createElement('div');
+      chip.className = 'evento-chip evento-chip-prof-' + chaveCorProfissional(ev.responsavel_nome);
+      const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
+      chip.innerHTML = `<span class="hora-evento">${hora}</span>${escaparHtmlAgenda(ev.titulo)}`;
+      chip.addEventListener('click', (e) => { e.stopPropagation(); abrirModalEvento('editar', ev, dia); });
+      celula.appendChild(chip);
+    });
+    if (eventosDoDia.length > 3) {
+      const mais = document.createElement('div');
+      mais.className = 'evento-mais';
+      mais.textContent = `+${eventosDoDia.length - 3} mais`;
+      celula.appendChild(mais);
+    }
+
+    celula.addEventListener('click', () => abrirModalEvento('novo', null, dia));
+    gradeEl.appendChild(celula);
+  }
+}
+
+async function irParaMes(delta) {
+  mesAtual.setMonth(mesAtual.getMonth() + delta);
+  mesAtual.setDate(1);
+  await carregarEventosDoMes();
+  renderizarCalendario();
+}
+
+async function irParaHoje() {
+  mesAtual = new Date(); mesAtual.setDate(1);
+  await carregarEventosDoMes();
+  renderizarCalendario();
+}
+
+document.getElementById('calendario-anterior').addEventListener('click', () => irParaMes(-1));
+document.getElementById('calendario-proximo').addEventListener('click', () => irParaMes(1));
+document.getElementById('botao-hoje').addEventListener('click', irParaHoje);
+document.getElementById('botao-novo-evento').addEventListener('click', () => abrirModalEvento('novo', null, new Date()));
+
+// ---- MODAL DE EVENTO ----
+const modalEvento = document.getElementById('modal-evento');
+const formEvento = document.getElementById('form-evento');
+let eventoEmEdicao = null;
+
+function calcularSinal() {
+  const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
+  const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
+  const total = Math.max(0, subtotal - desconto);
+  const sinal = total * 0.2;
+  document.getElementById('valor-subtotal-evento-display').textContent = `R$ ${subtotal.toFixed(2)}`;
+  document.getElementById('valor-total-evento-display').textContent = `R$ ${total.toFixed(2)}`;
+  document.getElementById('valor-sinal-calculado').textContent = `R$ ${sinal.toFixed(2)}`;
+  document.getElementById('valor-saldo-calculado').textContent = `R$ ${(total - sinal).toFixed(2)}`;
+  return sinal;
+}
+document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
+
+document.getElementById('evento-sinal-pago').addEventListener('change', (e) => {
+  document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !e.target.checked);
+});
+document.getElementById('evento-saldo-pago').addEventListener('change', (e) => {
+  document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !e.target.checked);
+});
+
+async function abrirModalEvento(modo, evento, diaClicado) {
+  formEvento.reset();
+  document.getElementById('evento-id').value = '';
+  document.getElementById('erro-evento').textContent = '';
+  document.getElementById('campo-sinal-metodo').classList.add('oculto');
+  document.getElementById('campo-saldo-metodo').classList.add('oculto');
+  eventoEmEdicao = evento;
+
+  if (modo === 'novo') {
+    document.getElementById('modal-evento-titulo').textContent = 'Adicionar cliente';
+    document.getElementById('botao-excluir-evento').classList.add('oculto');
+    document.getElementById('evento-data').value = chaveData(diaClicado);
+    document.getElementById('evento-hora-inicio').value = '10:00';
+    document.getElementById('evento-hora-fim').value = '';
+    definirResponsavelEventoNoFormulario('');
+    quantidadesServicoEvento = {};
+    document.getElementById('evento-desconto').value = '';
+    renderizarChecklistServicosEvento();
+    calcularSinal();
+  } else {
+    document.getElementById('modal-evento-titulo').textContent = 'Editar compromisso';
+    document.getElementById('botao-excluir-evento').classList.remove('oculto');
+    document.getElementById('evento-id').value = evento.id;
+    document.getElementById('evento-titulo').value = evento.titulo;
+    document.getElementById('evento-tipo').value = evento.tipo_evento || 'outro';
+    document.getElementById('evento-cliente').value = evento.cliente_id || '';
+    const inicio = new Date(evento.data_inicio);
+    document.getElementById('evento-data').value = chaveData(inicio);
+    document.getElementById('evento-hora-inicio').value = inicio.toTimeString().slice(0,5);
+    if (evento.data_fim) {
+      document.getElementById('evento-hora-fim').value = new Date(evento.data_fim).toTimeString().slice(0,5);
+    }
+    document.getElementById('evento-local').value = evento.local || '';
+    document.getElementById('evento-observacoes').value = evento.observacoes || '';
+    definirResponsavelEventoNoFormulario(evento.responsavel_nome || '');
+
+    quantidadesServicoEvento = {};
+    document.getElementById('evento-desconto').value = evento.desconto || '';
+    const { data: itensExistentes } = await supabaseClient.from('evento_servicos').select('*').eq('evento_id', evento.id);
+    (itensExistentes || []).forEach(item => {
+      if (item.servico_id) quantidadesServicoEvento[item.servico_id] = item.quantidade;
+    });
+    renderizarChecklistServicosEvento();
+    calcularSinal();
+
+    document.getElementById('evento-sinal-pago').checked = !!evento.sinal_pago;
+    document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !evento.sinal_pago);
+    document.getElementById('evento-sinal-metodo').value = evento.sinal_metodo || 'pix';
+    document.getElementById('evento-saldo-pago').checked = !!evento.saldo_pago;
+    document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !evento.saldo_pago);
+    document.getElementById('evento-saldo-metodo').value = evento.saldo_metodo || 'pix';
+  }
+  modalEvento.classList.remove('oculto');
+}
+
+document.getElementById('botao-fechar-modal-evento').addEventListener('click', () => modalEvento.classList.add('oculto'));
+modalEvento.addEventListener('click', (e) => { if (e.target === modalEvento) modalEvento.classList.add('oculto'); });
+
+formEvento.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById('erro-evento');
+  erroEl.textContent = '';
+
+  const id = document.getElementById('evento-id').value;
+  const data = document.getElementById('evento-data').value;
+  const horaInicio = document.getElementById('evento-hora-inicio').value;
+  const horaFim = document.getElementById('evento-hora-fim').value;
+  const perfil = getPerfilAtivo();
+  const clienteId = document.getElementById('evento-cliente').value || null;
+
+  if (!data || !horaInicio) { erroEl.textContent = 'Preencha data e horário de início.'; return; }
+
+  const subtotalServicos = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
+  const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
+  const valorTotal = Math.max(0, subtotalServicos - desconto);
+  const valorSinal = Math.round(valorTotal * 0.2 * 100) / 100;
+  const sinalPago = document.getElementById('evento-sinal-pago').checked;
+  const saldoPago = document.getElementById('evento-saldo-pago').checked;
+  const responsavelNome = obterNomeResponsavelEventoFinal();
+
+  if ((sinalPago || saldoPago) && !clienteId) {
+    erroEl.textContent = 'Selecione um cliente para registrar pagamento.';
+    return;
+  }
+
+  const dadosEvento = {
+    titulo: document.getElementById('evento-titulo').value.trim(),
+    tipo_evento: document.getElementById('evento-tipo').value,
+    cliente_id: clienteId,
+    data_inicio: new Date(`${data}T${horaInicio}:00`).toISOString(),
+    data_fim: horaFim ? new Date(`${data}T${horaFim}:00`).toISOString() : null,
+    local: document.getElementById('evento-local').value.trim() || null,
+    responsavel_nome: responsavelNome,
+    observacoes: document.getElementById('evento-observacoes').value.trim() || null,
+    valor_total: valorTotal || null,
+    valor_sinal: valorTotal ? valorSinal : null,
+    desconto: desconto || 0,
+    sinal_pago: sinalPago,
+    sinal_metodo: sinalPago ? document.getElementById('evento-sinal-metodo').value : null,
+    saldo_pago: saldoPago,
+    saldo_metodo: saldoPago ? document.getElementById('evento-saldo-metodo').value : null,
+  };
+
+  let resultado, eventoId;
+  if (id) {
+    resultado = await supabaseClient.from('eventos_calendario').update(dadosEvento).eq('id', id).select().single();
+    eventoId = id;
+  } else {
+    dadosEvento.criado_por = perfil ? perfil.id : null;
+    resultado = await supabaseClient.from('eventos_calendario').insert(dadosEvento).select().single();
+    eventoId = resultado.data ? resultado.data.id : null;
+  }
+
+  if (resultado.error) { erroEl.textContent = `Erro ao salvar: ${resultado.error.message}`; return; }
+
+  // salvar itens de serviço do agendamento (substitui os anteriores)
+  if (eventoId) {
+    await supabaseClient.from('evento_servicos').delete().eq('evento_id', eventoId);
+    const itensParaSalvar = catalogoServicosAgenda
+      .filter(s => (quantidadesServicoEvento[s.id] || 0) > 0)
+      .map(s => ({
+        evento_id: eventoId, servico_id: s.id, nome_servico: s.nome,
+        quantidade: quantidadesServicoEvento[s.id], valor_unitario: s.valor,
+      }));
+    if (itensParaSalvar.length > 0) {
+      await supabaseClient.from('evento_servicos').insert(itensParaSalvar);
+    }
+  }
+
+  // registrar pagamentos (sinal → negócio, saldo → profissional), evitando duplicar
+  if (eventoId && clienteId) {
+    if (sinalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal', valorSinal, document.getElementById('evento-sinal-metodo').value, 'negocio', null, perfil);
+    if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorTotal - valorSinal, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
+  }
+
+  modalEvento.classList.add('oculto');
+  toast(id ? 'Evento atualizado' : 'Evento adicionado', 'sucesso');
+  await carregarEventosDoMes();
+  renderizarCalendario();
+});
+
+async function registrarPagamentoSeNecessario(eventoId, clienteId, tipo, valor, metodo, destino, responsavelNome, perfil) {
+  const { data: existentes } = await supabaseClient
+    .from('pagamentos').select('id').eq('evento_id', eventoId).eq('tipo', tipo);
+  if (existentes && existentes.length > 0) return; // já registrado, não duplicar
+  await supabaseClient.from('pagamentos').insert({
+    cliente_id: clienteId, evento_id: eventoId, tipo, valor, metodo, destino,
+    responsavel_nome: responsavelNome, criado_por: perfil ? perfil.id : null,
+  });
+}
+
+document.getElementById('botao-excluir-evento').addEventListener('click', async () => {
+  const id = document.getElementById('evento-id').value;
+  if (!id) return;
+  if (!confirm('Excluir este evento da agenda?')) return;
+  const { error } = await supabaseClient.from('eventos_calendario').delete().eq('id', id);
+  if (error) { document.getElementById('erro-evento').textContent = `Erro ao excluir: ${error.message}`; return; }
+  modalEvento.classList.add('oculto');
+  toast('Evento excluído', 'sucesso');
+  await carregarEventosDoMes();
+  renderizarCalendario();
+});
+
+(async function iniciar() {
+  const ok = await protegerRota();
+  if (ok) {
+    await carregarClientesEPerfis();
+    await carregarEventosDoMes();
+    renderizarCalendario();
+  }
+})();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
