@@ -581,6 +581,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
     <a href="agenda.html" class="nav-link ativo">Agenda</a>
     <a href="clientes.html" class="nav-link">Clientes</a>
     <a href="financeiro.html" class="nav-link">Financeiro</a>
+    <a href="integracoes.html" class="nav-link">Integrações</a>
   </nav>
   <div class="usuario-ativo">
     <span id="nome-usuario-ativo"></span>
@@ -662,6 +663,9 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           <input type="time" id="evento-hora-fim">
         </div>
       </div>
+
+      <button type="button" class="botao-texto" id="botao-verificar-disponibilidade" style="margin:0.2rem 0 0.6rem">🔎 Verificar disponibilidade</button>
+      <p class="subtitulo" id="resultado-disponibilidade" style="margin:0 0 0.6rem"></p>
 
       <label for="evento-local">Local</label>
       <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
@@ -905,6 +909,68 @@ function mensagemConfirmacaoEvento(evento, cliente) {
     msg += ` Sinal já confirmado, obrigada! Nos vemos lá 💛`;
   }
   return msg;
+}
+
+// ============================================================
+// DISPONIBILIDADE — cruza a agenda interna com o Google Calendar
+// de cada perfil conectado (freebusy), para checar um novo pedido
+// antes de confirmar com a cliente.
+// ============================================================
+
+const EDGE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+
+document.getElementById('botao-verificar-disponibilidade').addEventListener('click', verificarDisponibilidade);
+
+async function verificarDisponibilidade() {
+  const resultadoEl = document.getElementById('resultado-disponibilidade');
+  const data = document.getElementById('evento-data').value;
+  const horaInicio = document.getElementById('evento-hora-inicio').value;
+  const horaFim = document.getElementById('evento-hora-fim').value || horaInicio;
+  if (!data || !horaInicio) { resultadoEl.textContent = 'Preencha data e horário antes de verificar.'; return; }
+
+  const inicioISO = new Date(`${data}T${horaInicio}:00`).toISOString();
+  const fimISO = new Date(`${data}T${horaFim}:00`).toISOString();
+  const idAtual = document.getElementById('evento-id').value;
+  resultadoEl.textContent = 'Verificando...';
+
+  // 1) conflitos internos (outros compromissos já na agenda)
+  let query = supabaseClient
+    .from('eventos_calendario')
+    .select('id, titulo, data_inicio, data_fim')
+    .lt('data_inicio', fimISO)
+    .gt('data_fim', inicioISO);
+  if (idAtual) query = query.neq('id', idAtual);
+  const { data: conflitosInternos } = await query;
+
+  // 2) horários ocupados no Google Calendar de cada perfil conectado
+  let ocupadosGoogle = {};
+  try {
+    const { data: perfis } = await supabaseClient.from('perfis').select('id, nome');
+    const resp = await fetch(`${EDGE_FUNCTIONS_URL}/google-freebusy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ perfilIds: (perfis || []).map(p => p.id), inicio: inicioISO, fim: fimISO }),
+    });
+    if (resp.ok) {
+      const corpo = await resp.json();
+      ocupadosGoogle = corpo.busy || {};
+    }
+  } catch (e) {
+    // Integração com Google ainda não configurada — segue só com a checagem interna
+  }
+
+  const temConflitoGoogle = Object.values(ocupadosGoogle).some(blocos => blocos && blocos.length > 0);
+
+  if ((conflitosInternos && conflitosInternos.length) || temConflitoGoogle) {
+    const partes = [];
+    if (conflitosInternos && conflitosInternos.length) partes.push(`${conflitosInternos.length} compromisso(s) na agenda`);
+    if (temConflitoGoogle) partes.push('conflito no Google Calendar de alguém do time');
+    resultadoEl.textContent = `⚠️ Não está livre: ${partes.join(' e ')}.`;
+    resultadoEl.style.color = 'var(--red)';
+  } else {
+    resultadoEl.textContent = '✅ Horário livre para todo o time.';
+    resultadoEl.style.color = 'var(--teal-deep)';
+  }
 }
 
 // ============================================================
@@ -1318,9 +1384,21 @@ formEvento.addEventListener('submit', async (e) => {
 
   modalEvento.classList.add('oculto');
   toast(id ? 'Evento atualizado' : 'Evento adicionado', 'sucesso');
+  if (eventoId) sincronizarGoogleCalendar(eventoId, 'salvar');
   await carregarEventosDoMes();
   renderizarCalendario();
 });
+
+// Espelha o compromisso no Google Calendar do responsável, se ele tiver
+// conectado a integração. Silencioso: se a função ainda não estiver
+// publicada (setup pendente), não atrapalha o fluxo de salvar o evento.
+function sincronizarGoogleCalendar(eventoId, acao) {
+  fetch(`${EDGE_FUNCTIONS_URL}/google-sync-event`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ eventoId, acao: acao === 'excluir' ? 'excluir' : 'upsert' }),
+  }).catch(() => {});
+}
 
 async function registrarPagamentoSeNecessario(eventoId, clienteId, tipo, valor, metodo, destino, responsavelNome, perfil) {
   const { data: existentes } = await supabaseClient
@@ -1336,6 +1414,7 @@ document.getElementById('botao-excluir-evento').addEventListener('click', async 
   const id = document.getElementById('evento-id').value;
   if (!id) return;
   if (!confirm('Excluir este evento da agenda?')) return;
+  sincronizarGoogleCalendar(id, 'excluir'); // dispara antes de apagar, para a função ainda achar o registro
   const { error } = await supabaseClient.from('eventos_calendario').delete().eq('id', id);
   if (error) { document.getElementById('erro-evento').textContent = `Erro ao excluir: ${error.message}`; return; }
   modalEvento.classList.add('oculto');

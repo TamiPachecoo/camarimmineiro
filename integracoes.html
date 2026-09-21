@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Integrações — Camarim Mineiro</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#3A7A6C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Camarim Mineiro">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Montserrat:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CAMARIM MINEIRO — Sistema de design
+   ============================================================ */
+
+:root {
+  --bg: #FAF6EF;
+  --surface: #FFFFFF;
+  --surface2: #F4EBDC;
+  --surface3: #EDE1CC;
+  --border: #E6D9C2;
+  --teal: #4F9A89;
+  --teal-dim: #E4F1EC;
+  --teal-deep: #3A7A6C;
+  --gold: #B98C55;
+  --gold-dim: #F5E9D6;
+  --ink: #2C2620;
+  --ink2: #8C8072;
+  --ink3: #B8AC9B;
+  --red: #B3564A;
+  --red-dim: #F6E2DF;
+  --white: #FFFFFF;
+  --radius: 18px;
+  --radius-sm: 11px;
+  --shadow: 0 1px 3px rgba(44, 38, 32, 0.05);
+  --shadow-card: 0 18px 40px -18px rgba(44, 38, 32, 0.22);
+  --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body { height: 100%; }
+body {
+  font-family: 'Montserrat', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.subtitulo {
+  color: var(--ink2);
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin: 0.4rem 0 1.6rem;
+}
+
+.oculto { display: none !important; }
+
+.marca-diamante {
+  width: 40px; height: 40px;
+  background: var(--teal);
+  color: var(--white);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cormorant Garamond', serif; font-weight: 600; font-size: 0.8rem;
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+  flex-shrink: 0;
+}
+.marca-diamante-pequena { width: 32px; height: 32px; font-size: 0.65rem; }
+
+.cabecalho-app {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1.05rem 2rem; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.marca-horizontal { display: flex; align-items: center; gap: 0.65rem; }
+.marca-nome {
+  font-family: 'Cormorant Garamond', serif; font-size: 1.02rem; font-weight: 600;
+  letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink);
+}
+.nav-app { display: flex; gap: 0.4rem; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); }
+.nav-link {
+  font-size: 0.78rem; font-weight: 600; color: var(--ink2); text-decoration: none;
+  padding: 0.5rem 1.1rem; border-radius: 8px; transition: all var(--transition);
+}
+.nav-link.ativo { color: var(--white); background: var(--teal-deep); }
+.nav-link:hover:not(.ativo) { color: var(--ink); }
+.usuario-ativo { display: flex; align-items: center; gap: 1.1rem; font-size: 0.85rem; color: var(--ink2); }
+.usuario-ativo #nome-usuario-ativo { font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: var(--ink); }
+
+.conteudo-principal { max-width: 760px; margin: 0 auto; padding: 2.6rem 2rem 4rem; }
+.barra-acoes { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 0.3rem; }
+.barra-acoes h1 { font-size: 2rem; }
+
+.botao-principal {
+  padding: 0.72rem 1.3rem;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--teal-deep); color: var(--white);
+  font-weight: 600; font-size: 0.85rem; cursor: pointer;
+  transition: background var(--transition), transform 120ms;
+}
+.botao-principal:hover { background: var(--teal); }
+.botao-principal:disabled { opacity: 0.5; cursor: not-allowed; }
+.botao-secundario {
+  padding: 0.72rem 1.3rem;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--ink);
+  font-weight: 600; font-size: 0.85rem; cursor: pointer;
+  transition: all var(--transition);
+}
+.botao-secundario:hover { border-color: var(--teal); }
+.botao-texto { background: none; border: none; color: var(--ink2); font-size: 0.83rem; cursor: pointer; text-decoration: underline; }
+
+.cartao-integracao {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.5rem 1.6rem; margin-bottom: 1.1rem;
+}
+.cartao-integracao-topo { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.3rem; }
+.cartao-integracao h2 { font-size: 1.3rem; }
+.cartao-integracao p.desc { font-size: 0.85rem; color: var(--ink2); margin: 0.3rem 0 1rem; line-height: 1.55; }
+
+.linha-perfil-google {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--surface2); margin-bottom: 0.7rem;
+}
+.linha-perfil-google:last-child { margin-bottom: 0; }
+.linha-perfil-google-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; }
+.etiqueta-conectado { font-size: 0.72rem; font-weight: 600; color: var(--teal-deep); background: var(--teal-dim); padding: 0.25rem 0.6rem; border-radius: 999px; }
+.etiqueta-desconectado { font-size: 0.72rem; font-weight: 600; color: var(--ink2); background: var(--surface3); padding: 0.25rem 0.6rem; border-radius: 999px; }
+
+.toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--ink); color: var(--white);
+  border-radius: 999px; padding: 0.7rem 1.3rem; font-size: 0.85rem; font-weight: 500;
+  z-index: 300; transition: transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap; box-shadow: var(--shadow-card);
+}
+.toast.mostrar { transform: translateX(-50%) translateY(0); }
+.toast.sucesso { background: var(--teal-deep); }
+.toast.erro { background: var(--red); }
+
+@media (max-width: 860px) {
+  .cabecalho-app { flex-wrap: wrap; gap: 0.85rem; padding: 1rem 1.25rem; }
+  .nav-app { order: 3; width: 100%; justify-content: space-between; }
+  .conteudo-principal { padding: 2rem 1.25rem 3rem; }
+}
+@media (max-width: 480px) {
+  .linha-perfil-google { flex-direction: column; align-items: stretch; }
+}
+</style>
+</head>
+<body>
+
+<header class="cabecalho-app">
+  <div class="marca marca-horizontal">
+    <div class="marca-diamante marca-diamante-pequena">CM</div>
+    <span class="marca-nome">Camarim Mineiro</span>
+  </div>
+  <nav class="nav-app">
+    <a href="index.html" class="nav-link">Menu</a>
+    <a href="agenda.html" class="nav-link">Agenda</a>
+    <a href="clientes.html" class="nav-link">Clientes</a>
+    <a href="financeiro.html" class="nav-link">Financeiro</a>
+    <a href="integracoes.html" class="nav-link ativo">Integrações</a>
+  </nav>
+  <div class="usuario-ativo">
+    <span id="nome-usuario-ativo"></span>
+    <button class="botao-texto" id="botao-trocar-perfil">Trocar</button>
+    <button class="botao-texto" id="botao-sair">Sair</button>
+  </div>
+</header>
+
+<main class="conteudo-principal">
+  <div class="barra-acoes">
+    <h1>Integrações</h1>
+  </div>
+  <p class="subtitulo">Conecte o Google Calendar do seu perfil e ative as notificações neste dispositivo.</p>
+
+  <div class="cartao-integracao">
+    <div class="cartao-integracao-topo"><h2>Google Calendar</h2></div>
+    <p class="desc">Cada profissional conecta o próprio Google Calendar. Compromissos criados na Agenda são espelhados lá, e a verificação de disponibilidade de um novo pedido também olha os seus horários pessoais.</p>
+    <div id="lista-perfis-google">
+      <p class="subtitulo" style="margin:0">Carregando perfis...</p>
+    </div>
+  </div>
+
+  <div class="cartao-integracao">
+    <div class="cartao-integracao-topo"><h2>Notificações</h2></div>
+    <p class="desc">Receba um aviso quando um novo compromisso for agendado, quando o status de uma cliente mudar, e um lembrete no dia anterior a cada atendimento.</p>
+    <button type="button" class="botao-principal" id="botao-ativar-notificacoes">Ativar notificações neste dispositivo</button>
+    <p class="subtitulo" id="status-notificacoes" style="margin:0.8rem 0 0"></p>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============================================================
+// CLIENTE SUPABASE
+// ============================================================
+
+const SUPABASE_URL = 'https://llhccvbovuzifsikvekz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsaGNjdmJvdnV6aWZzaWt2ZWt6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTY0MzIsImV4cCI6MjA5ODQ5MjQzMn0.9PCEjmF8R_MxVh24XOngaY7ZwyYGOEMcyDKDtpkPPUY';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ============================================================
+// AUTENTICAÇÃO (mesmo fluxo das outras páginas)
+// ============================================================
+
+const STORAGE_KEY = 'camarim_perfil_ativo';
+
+async function getSession() {
+  const { data } = await supabaseClient.auth.getSession();
+  return data.session;
+}
+
+async function signOutCompleto() {
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function getPerfilAtivo() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+function trocarPerfil() {
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function toast(mensagem, tipo = 'sucesso') {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = mensagem;
+  el.className = 'toast mostrar ' + tipo;
+  clearTimeout(window._toastTimeout);
+  window._toastTimeout = setTimeout(() => { el.classList.remove('mostrar'); }, 2800);
+}
+
+async function protegerRota() {
+  const sessao = await getSession();
+  if (!sessao) { window.location.href = 'index.html'; return false; }
+  const perfil = getPerfilAtivo();
+  if (!perfil) { window.location.href = 'index.html'; return false; }
+  document.getElementById('nome-usuario-ativo').textContent = perfil.nome;
+  return true;
+}
+document.getElementById('botao-trocar-perfil').addEventListener('click', trocarPerfil);
+document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
+
+// ============================================================
+// GOOGLE CALENDAR — conectar/desconectar por perfil
+// Preencha GOOGLE_CLIENT_ID abaixo depois de criar as credenciais
+// OAuth no Google Cloud Console (veja supabase/SETUP.md).
+// ============================================================
+
+const GOOGLE_CLIENT_ID = ''; // <-- preencher
+const EDGE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+const REDIRECT_URI_OAUTH = `${EDGE_FUNCTIONS_URL}/google-oauth-callback`;
+
+function iniciarConexaoGoogle(perfilId) {
+  if (!GOOGLE_CLIENT_ID) {
+    toast('Google Calendar ainda não foi configurado (falta o Client ID).', 'erro');
+    return;
+  }
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: REDIRECT_URI_OAUTH,
+    response_type: 'code',
+    access_type: 'offline',
+    prompt: 'consent',
+    scope: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly',
+    state: perfilId,
+  });
+  window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+async function desconectarGoogle(perfilId) {
+  const { error } = await supabaseClient.from('integracoes_google').delete().eq('perfil_id', perfilId);
+  if (error) { toast('Erro ao desconectar: ' + error.message, 'erro'); return; }
+  toast('Google Calendar desconectado.', 'sucesso');
+  await carregarPerfisGoogle();
+}
+
+async function carregarPerfisGoogle() {
+  const container = document.getElementById('lista-perfis-google');
+  const { data: perfis, error: erroPerfis } = await supabaseClient.from('perfis').select('id, nome');
+  if (erroPerfis) { container.innerHTML = `<p class="erro">Erro ao carregar perfis: ${erroPerfis.message}</p>`; return; }
+
+  // Sem policy de leitura em integracoes_google no navegador (de propósito —
+  // é onde ficam os refresh_tokens). Por isso só mostramos "conectar/desconectar"
+  // sem tentar ler o status daqui; o botão "Conectar" sempre funciona, e um
+  // toast confirma quando a integração acabou de ser criada (?google=ok).
+  container.innerHTML = '';
+  perfis.forEach(perfil => {
+    const linha = document.createElement('div');
+    linha.className = 'linha-perfil-google';
+    linha.innerHTML = `
+      <span class="linha-perfil-google-nome">${perfil.nome}</span>
+      <div style="display:flex; gap:0.5rem; align-items:center">
+        <button type="button" class="botao-secundario" data-acao="conectar" data-perfil="${perfil.id}">Conectar</button>
+        <button type="button" class="botao-texto" data-acao="desconectar" data-perfil="${perfil.id}">Desconectar</button>
+      </div>
+    `;
+    container.appendChild(linha);
+  });
+  container.querySelectorAll('[data-acao="conectar"]').forEach(btn =>
+    btn.addEventListener('click', () => iniciarConexaoGoogle(btn.dataset.perfil)));
+  container.querySelectorAll('[data-acao="desconectar"]').forEach(btn =>
+    btn.addEventListener('click', () => desconectarGoogle(btn.dataset.perfil)));
+}
+
+const paramsUrl = new URLSearchParams(window.location.search);
+if (paramsUrl.get('google') === 'ok') toast('Google Calendar conectado!', 'sucesso');
+if (paramsUrl.get('google') === 'erro') toast('Não foi possível conectar o Google Calendar.', 'erro');
+
+// ============================================================
+// NOTIFICAÇÕES PUSH
+// Preencha VAPID_PUBLIC_KEY com a chave pública gerada (a privada
+// fica só na Edge Function, nunca aqui).
+// ============================================================
+
+const VAPID_PUBLIC_KEY = 'BCCqcyl2oLJf3hE0rNNlg-i-eWuSFLwDN9D3OZ9Gay3N6J7Ki4yJqVOfJYeAtGnM4rDSBq4KQhNUz1VL_maymEs'; // chave pública — a privada fica só na Edge Function
+
+function base64UrlParaUint8Array(base64Url) {
+  const padding = '='.repeat((4 - (base64Url.length % 4)) % 4);
+  const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const bruto = atob(base64);
+  return Uint8Array.from([...bruto].map(c => c.charCodeAt(0)));
+}
+
+async function atualizarStatusNotificacoes() {
+  const statusEl = document.getElementById('status-notificacoes');
+  const botao = document.getElementById('botao-ativar-notificacoes');
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    statusEl.textContent = 'Este navegador não suporta notificações push.';
+    botao.disabled = true;
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    statusEl.textContent = 'Notificações bloqueadas nas configurações do navegador.';
+    return;
+  }
+  const registro = await navigator.serviceWorker.ready;
+  const inscricaoAtual = await registro.pushManager.getSubscription();
+  statusEl.textContent = inscricaoAtual ? 'Notificações ativas neste dispositivo.' : 'Notificações ainda não ativadas neste dispositivo.';
+  botao.textContent = inscricaoAtual ? 'Desativar notificações neste dispositivo' : 'Ativar notificações neste dispositivo';
+}
+
+document.getElementById('botao-ativar-notificacoes').addEventListener('click', async () => {
+  if (!VAPID_PUBLIC_KEY) { toast('Notificações ainda não foram configuradas (falta a chave VAPID).', 'erro'); return; }
+  const registro = await navigator.serviceWorker.ready;
+  const inscricaoAtual = await registro.pushManager.getSubscription();
+
+  if (inscricaoAtual) {
+    await supabaseClient.from('push_subscriptions').delete().eq('endpoint', inscricaoAtual.endpoint);
+    await inscricaoAtual.unsubscribe();
+    toast('Notificações desativadas neste dispositivo.', 'sucesso');
+    await atualizarStatusNotificacoes();
+    return;
+  }
+
+  const permissao = await Notification.requestPermission();
+  if (permissao !== 'granted') { toast('Permissão de notificações negada.', 'erro'); return; }
+
+  const perfil = getPerfilAtivo();
+  const inscricao = await registro.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: base64UrlParaUint8Array(VAPID_PUBLIC_KEY),
+  });
+  const chaves = inscricao.toJSON().keys;
+  const { error } = await supabaseClient.from('push_subscriptions').insert({
+    perfil_id: perfil ? perfil.id : null,
+    endpoint: inscricao.endpoint,
+    p256dh: chaves.p256dh,
+    auth: chaves.auth,
+  });
+  if (error) { toast('Erro ao salvar inscrição: ' + error.message, 'erro'); return; }
+  toast('Notificações ativadas!', 'sucesso');
+  await atualizarStatusNotificacoes();
+});
+
+// ============================================================
+// INICIALIZAÇÃO
+// ============================================================
+
+(async () => {
+  const ok = await protegerRota();
+  if (!ok) return;
+  await carregarPerfisGoogle();
+  await atualizarStatusNotificacoes();
+})();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
