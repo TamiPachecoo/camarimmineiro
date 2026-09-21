@@ -300,6 +300,9 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .modal-rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.05rem; border-top: 1px solid var(--border); }
 .modal-rodape .botao-principal { margin-top: 0; }
 #botao-excluir-cliente { color: var(--red); margin-top: 0; }
+#botao-excluir-evento { color: var(--red); margin-top: 0; }
+.botao-whatsapp { color: #25925A; margin-top: 0; margin-left: auto; margin-right: 1.1rem; font-weight: 600; }
+.botao-whatsapp:hover { color: #1B7245; }
 
 /* ============================================================
    TOAST
@@ -730,6 +733,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
       <div class="modal-rodape">
         <button type="button" class="botao-texto" id="botao-excluir-evento">Excluir</button>
+        <button type="button" class="botao-texto botao-whatsapp oculto" id="botao-whatsapp-evento">💬 WhatsApp</button>
         <button type="submit" class="botao-principal">Salvar</button>
       </div>
       <p class="erro" id="erro-evento"></p>
@@ -857,6 +861,53 @@ document.getElementById('botao-trocar-perfil').addEventListener('click', trocarP
 document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
 
 // ============================================================
+// WHATSAPP — link direto com mensagem pré-preenchida
+// ============================================================
+
+function digitosWhatsapp(numero) {
+  let digitos = (numero || '').replace(/\D/g, '');
+  if (!digitos) return '';
+  if (digitos.length <= 11) digitos = '55' + digitos; // adiciona DDI Brasil se não informado
+  return digitos;
+}
+
+function abrirWhatsapp(numero, mensagem) {
+  const digitos = digitosWhatsapp(numero);
+  if (!digitos) { toast('Esta cliente não tem WhatsApp cadastrado.', 'erro'); return; }
+  const url = `https://wa.me/${digitos}?text=${encodeURIComponent(mensagem)}`;
+  window.open(url, '_blank');
+}
+
+const CHAVE_PIX_STORAGE = 'camarim_chave_pix';
+
+function obterChavePix() {
+  let chave = localStorage.getItem(CHAVE_PIX_STORAGE);
+  if (!chave) {
+    chave = window.prompt('Ainda não temos uma chave Pix salva neste dispositivo. Digite a chave Pix do Camarim Mineiro:');
+    if (chave) localStorage.setItem(CHAVE_PIX_STORAGE, chave.trim());
+  }
+  return chave || '';
+}
+
+function mensagemConfirmacaoEvento(evento, cliente) {
+  const nome = cliente ? cliente.nome_noiva : '';
+  const dataFmt = new Date(`${evento.data}T00:00:00`).toLocaleDateString('pt-BR');
+  const local = evento.local ? ` em ${evento.local}` : '';
+  let msg = `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Confirmando seu horário: ${dataFmt} às ${evento.horaInicio}${local}.`;
+  if (evento.valorSinal > 0 && !evento.sinalPago) {
+    const chavePix = obterChavePix();
+    msg += ` Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix`;
+    msg += chavePix ? ` (chave: ${chavePix}).` : '.';
+    if (evento.valorTotal > evento.valorSinal) {
+      msg += ` O restante (R$ ${(evento.valorTotal - evento.valorSinal).toFixed(2)}) é pago no dia do atendimento.`;
+    }
+  } else if (evento.valorSinal > 0 && evento.sinalPago) {
+    msg += ` Sinal já confirmado, obrigada! Nos vemos lá 💛`;
+  }
+  return msg;
+}
+
+// ============================================================
 // AGENDA — calendário mensal ligado à tabela eventos_calendario
 // ============================================================
 
@@ -878,7 +929,7 @@ let catalogoServicosAgenda = [];
 let quantidadesServicoEvento = {};
 
 async function carregarClientesEPerfis() {
-  const { data: clientes } = await supabaseClient.from('clientes').select('id, nome_noiva, tipo_cliente, endereco').order('nome_noiva');
+  const { data: clientes } = await supabaseClient.from('clientes').select('id, nome_noiva, tipo_cliente, endereco, whatsapp').order('nome_noiva');
   clientesCacheAgenda = clientes || [];
   const selectCliente = document.getElementById('evento-cliente');
   selectCliente.innerHTML = '<option value="">Nenhum (evento interno)</option>' +
@@ -1122,6 +1173,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   if (modo === 'novo') {
     document.getElementById('modal-evento-titulo').textContent = 'Adicionar cliente';
     document.getElementById('botao-excluir-evento').classList.add('oculto');
+    document.getElementById('botao-whatsapp-evento').classList.add('oculto');
     document.getElementById('evento-data').value = chaveData(diaClicado);
     document.getElementById('evento-hora-inicio').value = '10:00';
     document.getElementById('evento-hora-fim').value = '';
@@ -1162,6 +1214,24 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-saldo-pago').checked = !!evento.saldo_pago;
     document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !evento.saldo_pago);
     document.getElementById('evento-saldo-metodo').value = evento.saldo_metodo || 'pix';
+
+    const clienteDoEvento = clientesCacheAgenda.find(c => c.id === evento.cliente_id);
+    const botaoWhats = document.getElementById('botao-whatsapp-evento');
+    botaoWhats.classList.toggle('oculto', !(clienteDoEvento && clienteDoEvento.whatsapp));
+    botaoWhats.onclick = () => {
+      const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
+      const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
+      const valorTotal = Math.max(0, subtotal - desconto);
+      const dadosMsg = {
+        data: document.getElementById('evento-data').value,
+        horaInicio: document.getElementById('evento-hora-inicio').value,
+        local: document.getElementById('evento-local').value.trim(),
+        valorTotal,
+        valorSinal: Math.round(valorTotal * 0.2 * 100) / 100,
+        sinalPago: document.getElementById('evento-sinal-pago').checked,
+      };
+      abrirWhatsapp(clienteDoEvento.whatsapp, mensagemConfirmacaoEvento(dadosMsg, clienteDoEvento));
+    };
   }
   modalEvento.classList.remove('oculto');
 }

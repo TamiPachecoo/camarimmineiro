@@ -300,6 +300,15 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .modal-rodape { display: flex; align-items: center; justify-content: space-between; margin-top: 1.3rem; padding-top: 1.05rem; border-top: 1px solid var(--border); }
 .modal-rodape .botao-principal { margin-top: 0; }
 #botao-excluir-cliente { color: var(--red); margin-top: 0; }
+.botao-whatsapp { color: #25925A; margin-top: 0; margin-left: auto; margin-right: 1.1rem; font-weight: 600; }
+.botao-whatsapp:hover { color: #1B7245; }
+.botao-whatsapp-card {
+  margin-top: 0.75rem; width: 100%; padding: 0.55rem;
+  border: 1px solid #CDE8D9; border-radius: var(--radius-sm);
+  background: #EAF7EF; color: #1B7245; font-weight: 600; font-size: 0.8rem;
+  cursor: pointer; transition: background var(--transition);
+}
+.botao-whatsapp-card:hover { background: #DBF1E3; }
 
 /* ============================================================
    TOAST
@@ -616,6 +625,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
       <div class="modal-rodape">
         <button type="button" class="botao-texto" id="botao-excluir-cliente">Excluir</button>
+        <button type="button" class="botao-texto botao-whatsapp oculto" id="botao-whatsapp-cliente">💬 WhatsApp</button>
         <button type="submit" class="botao-principal">Salvar</button>
       </div>
       <p class="erro" id="erro-cliente"></p>
@@ -743,6 +753,35 @@ document.getElementById('botao-trocar-perfil').addEventListener('click', trocarP
 document.getElementById('botao-sair').addEventListener('click', signOutCompleto);
 
 // ============================================================
+// WHATSAPP — link direto com mensagem pré-preenchida
+// ============================================================
+
+function digitosWhatsapp(numero) {
+  let digitos = (numero || '').replace(/\D/g, '');
+  if (!digitos) return '';
+  if (digitos.length <= 11) digitos = '55' + digitos; // adiciona DDI Brasil se não informado
+  return digitos;
+}
+
+function abrirWhatsapp(numero, mensagem) {
+  const digitos = digitosWhatsapp(numero);
+  if (!digitos) { toast('Esta cliente não tem WhatsApp cadastrado.', 'erro'); return; }
+  const url = `https://wa.me/${digitos}?text=${encodeURIComponent(mensagem)}`;
+  window.open(url, '_blank');
+}
+
+function mensagemContatoCliente(cliente) {
+  const nome = cliente.nome_noiva || '';
+  if (cliente.status === 'contato') {
+    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Para eu verificar a disponibilidade, pode me confirmar a data, o horário e o bairro do atendimento?`;
+  }
+  if (cliente.status === 'orcamento') {
+    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Passando para fechar os detalhes do seu atendimento. Podemos confirmar?`;
+  }
+  return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛`;
+}
+
+// ============================================================
 // CLIENTES — Lista, cadastro, edição, exclusão + serviços/financeiro
 // ============================================================
 
@@ -798,8 +837,16 @@ function renderizarLista() {
       ${cliente.endereco ? `<p class="cartao-cliente-info">📍 ${escaparHtml(cliente.endereco)}</p>` : ''}
       ${cliente.whatsapp ? `<p class="cartao-cliente-info">📱 ${escaparHtml(cliente.whatsapp)}</p>` : ''}
       ${cliente.responsavel_nome ? `<p class="cartao-cliente-info">👤 ${escaparHtml(cliente.responsavel_nome)}</p>` : ''}
+      ${cliente.whatsapp ? `<button type="button" class="botao-whatsapp-card">💬 Mandar mensagem</button>` : ''}
     `;
     card.addEventListener('click', () => abrirModalEdicao(cliente));
+    const botaoWhatsCard = card.querySelector('.botao-whatsapp-card');
+    if (botaoWhatsCard) {
+      botaoWhatsCard.addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirWhatsapp(cliente.whatsapp, mensagemContatoCliente(cliente));
+      });
+    }
     listaEl.appendChild(card);
   });
 }
@@ -934,6 +981,7 @@ document.getElementById('botao-nova-cliente').addEventListener('click', () => {
   document.getElementById('cliente-id').value = '';
   document.getElementById('modal-titulo').textContent = 'Nova cliente';
   document.getElementById('botao-excluir-cliente').classList.add('oculto');
+  document.getElementById('botao-whatsapp-cliente').classList.add('oculto');
   document.getElementById('erro-cliente').textContent = '';
   document.getElementById('secao-servicos').classList.remove('oculto');
   servicosSelecionados = new Set();
@@ -967,6 +1015,9 @@ function abrirModalEdicao(cliente) {
   document.getElementById('fornecedor_video').value = cliente.fornecedor_video || '';
   document.getElementById('modal-titulo').textContent = 'Editar cliente';
   document.getElementById('botao-excluir-cliente').classList.remove('oculto');
+  const botaoWhats = document.getElementById('botao-whatsapp-cliente');
+  botaoWhats.classList.toggle('oculto', !cliente.whatsapp);
+  botaoWhats.onclick = () => abrirWhatsapp(cliente.whatsapp, mensagemContatoCliente(cliente));
   document.getElementById('erro-cliente').textContent = '';
   // serviços só se aplicam ao criar a cliente (fatura inicial); ao editar, gerenciar em Financeiro
   document.getElementById('secao-servicos').classList.add('oculto');
