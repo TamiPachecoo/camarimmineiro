@@ -474,10 +474,12 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .ponto-prof-nenhum { background: var(--prof-nenhum); }
 
 @media (max-width: 700px) {
-  .calendario-grade { grid-auto-rows: minmax(70px, auto); }
-  .calendario-numero-dia { font-size: 0.7rem; }
-  .evento-chip { font-size: 0.6rem; padding: 1px 4px; }
-  .calendario-dia-semana-nome { font-size: 0.6rem; }
+  /* Em vez de espremer as 7 colunas até ficar ilegível, deixa a grade
+     no tamanho legível e permite rolar na horizontal (como o Google
+     Calendar faz no mobile). */
+  .calendario-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -1.25rem; padding: 0 1.25rem; }
+  .calendario-grade-semana, .calendario-grade { min-width: 630px; }
+  .calendario-grade { grid-auto-rows: minmax(88px, auto); }
 }
 
 /* ============================================================
@@ -562,6 +564,10 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   padding: 0.55rem 0.8rem; margin-bottom: 0.7rem;
 }
 .linha-pagamento-sinal .valor-sinal-destaque { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+#bloco-nova-cliente-rapida {
+  background: var(--teal-dim); border: 1px solid var(--teal); border-radius: var(--radius-sm);
+  padding: 0.9rem 1rem 0.2rem; margin: 0.3rem 0 1rem;
+}
 .check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
 .check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
@@ -608,16 +614,18 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
   <div class="legenda-tipos" id="legenda-tipos"></div>
 
-  <div class="calendario-grade-semana">
-    <div class="calendario-dia-semana-nome">Dom</div>
-    <div class="calendario-dia-semana-nome">Seg</div>
-    <div class="calendario-dia-semana-nome">Ter</div>
-    <div class="calendario-dia-semana-nome">Qua</div>
-    <div class="calendario-dia-semana-nome">Qui</div>
-    <div class="calendario-dia-semana-nome">Sex</div>
-    <div class="calendario-dia-semana-nome">Sáb</div>
+  <div class="calendario-scroll">
+    <div class="calendario-grade-semana">
+      <div class="calendario-dia-semana-nome">Dom</div>
+      <div class="calendario-dia-semana-nome">Seg</div>
+      <div class="calendario-dia-semana-nome">Ter</div>
+      <div class="calendario-dia-semana-nome">Qua</div>
+      <div class="calendario-dia-semana-nome">Qui</div>
+      <div class="calendario-dia-semana-nome">Sex</div>
+      <div class="calendario-dia-semana-nome">Sáb</div>
+    </div>
+    <div class="calendario-grade" id="calendario-grade"></div>
   </div>
-  <div class="calendario-grade" id="calendario-grade"></div>
 
 </main>
 
@@ -647,6 +655,21 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           <label for="evento-cliente">Cliente</label>
           <select id="evento-cliente"><option value="">Nenhum</option></select>
         </div>
+      </div>
+
+      <div class="oculto" id="bloco-nova-cliente-rapida">
+        <div class="linha-form">
+          <div class="campo-form">
+            <label for="nova-cliente-nome">Nome da cliente *</label>
+            <input type="text" id="nova-cliente-nome" placeholder="Nome completo">
+          </div>
+          <div class="campo-form">
+            <label for="nova-cliente-whatsapp">WhatsApp</label>
+            <input type="text" id="nova-cliente-whatsapp" placeholder="+55 31 9....">
+          </div>
+        </div>
+        <label for="nova-cliente-endereco">Endereço</label>
+        <input type="text" id="nova-cliente-endereco" placeholder="Endereço / bairro do atendimento">
       </div>
 
       <div class="linha-form">
@@ -999,6 +1022,7 @@ async function carregarClientesEPerfis() {
   clientesCacheAgenda = clientes || [];
   const selectCliente = document.getElementById('evento-cliente');
   selectCliente.innerHTML = '<option value="">Nenhum (evento interno)</option>' +
+    '<option value="__novo__">+ Nova cliente...</option>' +
     clientesCacheAgenda.map(c => `<option value="${c.id}">${c.nome_noiva}</option>`).join('');
 
   const { data: servicos } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
@@ -1040,10 +1064,15 @@ function renderizarChecklistServicosEvento() {
 }
 
 document.getElementById('evento-cliente').addEventListener('change', (e) => {
+  const blocoNovaCliente = document.getElementById('bloco-nova-cliente-rapida');
+  blocoNovaCliente.classList.toggle('oculto', e.target.value !== '__novo__');
+  if (e.target.value === '__novo__') {
+    document.getElementById('nova-cliente-nome').focus();
+    return;
+  }
   const cliente = clientesCacheAgenda.find(c => c.id === e.target.value);
   const campoLocal = document.getElementById('evento-local');
-  const tiposComEndereco = ['social', 'empresa'];
-  if (cliente && tiposComEndereco.includes(cliente.tipo_cliente) && cliente.endereco && !campoLocal.value.trim()) {
+  if (cliente && cliente.endereco && !campoLocal.value.trim()) {
     campoLocal.value = cliente.endereco;
   }
 });
@@ -1234,6 +1263,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   document.getElementById('erro-evento').textContent = '';
   document.getElementById('campo-sinal-metodo').classList.add('oculto');
   document.getElementById('campo-saldo-metodo').classList.add('oculto');
+  document.getElementById('bloco-nova-cliente-rapida').classList.add('oculto');
   eventoEmEdicao = evento;
 
   if (modo === 'novo') {
@@ -1315,9 +1345,24 @@ formEvento.addEventListener('submit', async (e) => {
   const horaInicio = document.getElementById('evento-hora-inicio').value;
   const horaFim = document.getElementById('evento-hora-fim').value;
   const perfil = getPerfilAtivo();
-  const clienteId = document.getElementById('evento-cliente').value || null;
+  let clienteId = document.getElementById('evento-cliente').value || null;
 
   if (!data || !horaInicio) { erroEl.textContent = 'Preencha data e horário de início.'; return; }
+
+  if (clienteId === '__novo__') {
+    const nomeNovaCliente = document.getElementById('nova-cliente-nome').value.trim();
+    if (!nomeNovaCliente) { erroEl.textContent = 'Preencha o nome da nova cliente.'; return; }
+    const { data: novaCliente, error: erroNovaCliente } = await supabaseClient.from('clientes').insert({
+      nome_noiva: nomeNovaCliente,
+      whatsapp: document.getElementById('nova-cliente-whatsapp').value.trim() || null,
+      endereco: document.getElementById('nova-cliente-endereco').value.trim() || null,
+      status: 'confirmada',
+      criado_por: perfil ? perfil.id : null,
+    }).select().single();
+    if (erroNovaCliente) { erroEl.textContent = `Erro ao criar cliente: ${erroNovaCliente.message}`; return; }
+    clienteId = novaCliente.id;
+    clientesCacheAgenda.push(novaCliente);
+  }
 
   const subtotalServicos = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
   const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
@@ -1332,13 +1377,16 @@ formEvento.addEventListener('submit', async (e) => {
     return;
   }
 
+  const localInformado = document.getElementById('evento-local').value.trim()
+    || document.getElementById('nova-cliente-endereco').value.trim() || null;
+
   const dadosEvento = {
     titulo: document.getElementById('evento-titulo').value.trim(),
     tipo_evento: document.getElementById('evento-tipo').value,
     cliente_id: clienteId,
     data_inicio: new Date(`${data}T${horaInicio}:00`).toISOString(),
     data_fim: horaFim ? new Date(`${data}T${horaFim}:00`).toISOString() : null,
-    local: document.getElementById('evento-local').value.trim() || null,
+    local: localInformado,
     responsavel_nome: responsavelNome,
     observacoes: document.getElementById('evento-observacoes').value.trim() || null,
     valor_total: valorTotal || null,
