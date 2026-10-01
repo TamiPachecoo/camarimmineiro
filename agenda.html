@@ -583,6 +583,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   padding: 0.55rem 0.8rem; margin-bottom: 0.7rem;
 }
 .linha-pagamento-sinal .valor-sinal-destaque { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep); }
+.linha-pagamento-editavel { align-items: center; gap: 0.6rem; }
+.linha-pagamento-editavel span:first-child { flex: 1; }
+.campo-valor-destaque {
+  font-family: 'DM Mono', monospace; font-weight: 600; color: var(--teal-deep);
+  width: 100px; text-align: right; padding: 0.35rem 0.5rem; background: var(--surface2);
+  border: 1px solid var(--border); border-radius: 7px; flex-shrink: 0;
+}
 #bloco-nova-cliente-rapida {
   background: var(--teal-dim); border: 1px solid var(--teal); border-radius: var(--radius-sm);
   padding: 0.9rem 1rem 0.2rem; margin: 0.3rem 0 1rem;
@@ -761,13 +768,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           <span>Valor total (com desconto)</span>
           <span class="valor-sinal-destaque" id="valor-total-evento-display">R$ 0.00</span>
         </div>
-        <div class="linha-pagamento-sinal">
-          <span>Sinal (20% — vai para o negócio)</span>
-          <span class="valor-sinal-destaque" id="valor-sinal-calculado">R$ 0.00</span>
+        <div class="linha-pagamento-sinal linha-pagamento-editavel">
+          <span>Sinal recebido <span class="rotulo-dica">(sugestão: 20% — edite se for diferente)</span></span>
+          <input type="number" class="campo-valor-destaque" id="evento-valor-sinal" step="0.01" min="0">
         </div>
-        <div class="linha-pagamento-sinal">
-          <span>Saldo (80% — vai para a profissional)</span>
-          <span class="valor-sinal-destaque" id="valor-saldo-calculado">R$ 0.00</span>
+        <div class="linha-pagamento-sinal linha-pagamento-editavel">
+          <span>Saldo a receber no dia</span>
+          <input type="number" class="campo-valor-destaque" id="evento-valor-saldo" step="0.01" min="0">
         </div>
 
         <div class="check-pagamento">
@@ -1367,18 +1374,39 @@ const modalEvento = document.getElementById('modal-evento');
 const formEvento = document.getElementById('form-evento');
 let eventoEmEdicao = null;
 
+// Sinal e saldo começam como sugestão (20%/80%), mas são editáveis —
+// o valor realmente recebido pode ser diferente (depósito fixo por
+// pessoa, cliente que mandou a mais, etc). Uma vez editados à mão,
+// deixam de ser recalculados automaticamente quando os serviços mudam.
+let sinalEditadoManualmente = false;
+let saldoEditadoManualmente = false;
+
 function calcularSinal() {
   const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
   const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
   const total = Math.max(0, subtotal - desconto);
-  const sinal = total * 0.2;
   document.getElementById('valor-subtotal-evento-display').textContent = `R$ ${subtotal.toFixed(2)}`;
   document.getElementById('valor-total-evento-display').textContent = `R$ ${total.toFixed(2)}`;
-  document.getElementById('valor-sinal-calculado').textContent = `R$ ${sinal.toFixed(2)}`;
-  document.getElementById('valor-saldo-calculado').textContent = `R$ ${(total - sinal).toFixed(2)}`;
-  return sinal;
+
+  const campoSinal = document.getElementById('evento-valor-sinal');
+  const campoSaldo = document.getElementById('evento-valor-saldo');
+  if (!sinalEditadoManualmente) campoSinal.value = (total * 0.2).toFixed(2);
+  if (!saldoEditadoManualmente) {
+    const sinalAtual = parseFloat(campoSinal.value) || 0;
+    campoSaldo.value = Math.max(0, total - sinalAtual).toFixed(2);
+  }
+  return parseFloat(campoSinal.value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
+document.getElementById('evento-valor-sinal').addEventListener('input', () => {
+  sinalEditadoManualmente = true;
+  if (!saldoEditadoManualmente) {
+    const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
+    const sinalAtual = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
+    document.getElementById('evento-valor-saldo').value = Math.max(0, total - sinalAtual).toFixed(2);
+  }
+});
+document.getElementById('evento-valor-saldo').addEventListener('input', () => { saldoEditadoManualmente = true; });
 
 document.getElementById('evento-sinal-pago').addEventListener('change', (e) => {
   document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !e.target.checked);
@@ -1397,21 +1425,16 @@ function criarLinhaParticipante(participante) {
   if (participante && participante.id) div.dataset.participanteId = participante.id;
 
   const opcoesClientes = clientesCacheAgenda.map(c => `<option value="${c.id}">${escaparHtmlAgenda(c.nome_noiva)}</option>`).join('');
+  const opcoesMetodo = `<option value="pix">Pix</option><option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option>`;
   div.innerHTML = `
     <button type="button" class="botao-remover-participante">×</button>
-    <div class="linha-form">
-      <div class="campo-form">
-        <label>Cliente</label>
-        <select class="participante-cliente">
-          <option value="">Selecione...</option>
-          <option value="__novo__">+ Nova cliente...</option>
-          ${opcoesClientes}
-        </select>
-      </div>
-      <div class="campo-form">
-        <label>Valor cobrado (R$)</label>
-        <input type="number" class="participante-valor" step="0.01" min="0" placeholder="0.00">
-      </div>
+    <div class="campo-form">
+      <label>Cliente</label>
+      <select class="participante-cliente">
+        <option value="">Selecione...</option>
+        <option value="__novo__">+ Nova cliente...</option>
+        ${opcoesClientes}
+      </select>
     </div>
     <div class="oculto bloco-nova-cliente-participante">
       <div class="linha-form">
@@ -1419,39 +1442,57 @@ function criarLinhaParticipante(participante) {
         <div class="campo-form"><input type="text" class="participante-novo-whatsapp" placeholder="WhatsApp"></div>
       </div>
     </div>
-    <div class="check-pagamento">
-      <input type="checkbox" class="participante-pago" id="participante-pago-${idx}">
-      <label for="participante-pago-${idx}">Pago</label>
+
+    <div class="linha-form" style="margin-top:0.6rem">
+      <div class="campo-form">
+        <label>Sinal recebido (R$)</label>
+        <input type="number" class="participante-valor-sinal" step="0.01" min="0" placeholder="0.00">
+      </div>
+      <div class="campo-form">
+        <label>Saldo a receber no dia (R$)</label>
+        <input type="number" class="participante-valor-saldo" step="0.01" min="0" placeholder="0.00">
+      </div>
     </div>
-    <div class="campo-metodo-pagamento oculto participante-metodo-wrap">
-      <select class="participante-metodo">
-        <option value="pix">Pix</option>
-        <option value="transferencia">Transferência</option>
-        <option value="dinheiro">Dinheiro</option>
-        <option value="cartao">Cartão</option>
-      </select>
+    <div class="check-pagamento">
+      <input type="checkbox" class="participante-sinal-pago" id="participante-sinal-pago-${idx}">
+      <label for="participante-sinal-pago-${idx}">Sinal já foi pago</label>
+    </div>
+    <div class="campo-metodo-pagamento oculto participante-sinal-metodo-wrap">
+      <select class="participante-sinal-metodo">${opcoesMetodo}</select>
+    </div>
+    <div class="check-pagamento">
+      <input type="checkbox" class="participante-saldo-pago" id="participante-saldo-pago-${idx}">
+      <label for="participante-saldo-pago-${idx}">Saldo pago no dia</label>
+    </div>
+    <div class="campo-metodo-pagamento oculto participante-saldo-metodo-wrap">
+      <select class="participante-saldo-metodo">${opcoesMetodo}</select>
     </div>
   `;
 
   const seletorCliente = div.querySelector('.participante-cliente');
   const blocoNovaCliente = div.querySelector('.bloco-nova-cliente-participante');
-  const checkPago = div.querySelector('.participante-pago');
-  const metodoWrap = div.querySelector('.participante-metodo-wrap');
+  const checkSinalPago = div.querySelector('.participante-sinal-pago');
+  const sinalMetodoWrap = div.querySelector('.participante-sinal-metodo-wrap');
+  const checkSaldoPago = div.querySelector('.participante-saldo-pago');
+  const saldoMetodoWrap = div.querySelector('.participante-saldo-metodo-wrap');
 
   if (participante) {
     seletorCliente.value = participante.cliente_id || '';
-    div.querySelector('.participante-valor').value = participante.valor || '';
-    checkPago.checked = !!participante.pago;
-    metodoWrap.classList.toggle('oculto', !participante.pago);
-    div.querySelector('.participante-metodo').value = participante.metodo_pagamento || 'pix';
+    div.querySelector('.participante-valor-sinal').value = participante.valor_sinal || '';
+    div.querySelector('.participante-valor-saldo').value = participante.valor_saldo || '';
+    checkSinalPago.checked = !!participante.sinal_pago;
+    sinalMetodoWrap.classList.toggle('oculto', !participante.sinal_pago);
+    div.querySelector('.participante-sinal-metodo').value = participante.sinal_metodo || 'pix';
+    checkSaldoPago.checked = !!participante.saldo_pago;
+    saldoMetodoWrap.classList.toggle('oculto', !participante.saldo_pago);
+    div.querySelector('.participante-saldo-metodo').value = participante.saldo_metodo || 'pix';
   }
 
   seletorCliente.addEventListener('change', () => {
     blocoNovaCliente.classList.toggle('oculto', seletorCliente.value !== '__novo__');
   });
-  checkPago.addEventListener('change', () => {
-    metodoWrap.classList.toggle('oculto', !checkPago.checked);
-  });
+  checkSinalPago.addEventListener('change', () => sinalMetodoWrap.classList.toggle('oculto', !checkSinalPago.checked));
+  checkSaldoPago.addEventListener('change', () => saldoMetodoWrap.classList.toggle('oculto', !checkSaldoPago.checked));
   div.querySelector('.botao-remover-participante').addEventListener('click', () => div.remove());
 
   return div;
@@ -1469,6 +1510,8 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   document.getElementById('campo-saldo-metodo').classList.add('oculto');
   document.getElementById('bloco-nova-cliente-rapida').classList.add('oculto');
   document.getElementById('lista-participantes-grupo').innerHTML = '';
+  sinalEditadoManualmente = false;
+  saldoEditadoManualmente = false;
   eventoEmEdicao = evento;
 
   if (modo === 'novo') {
@@ -1509,6 +1552,14 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     });
     renderizarChecklistServicosEvento();
     calcularSinal();
+    if (evento.valor_sinal != null) {
+      document.getElementById('evento-valor-sinal').value = Number(evento.valor_sinal).toFixed(2);
+      sinalEditadoManualmente = true;
+    }
+    if (evento.valor_total != null) {
+      document.getElementById('evento-valor-saldo').value = Math.max(0, Number(evento.valor_total) - Number(evento.valor_sinal || 0)).toFixed(2);
+      saldoEditadoManualmente = true;
+    }
 
     document.getElementById('evento-sinal-pago').checked = !!evento.sinal_pago;
     document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !evento.sinal_pago);
@@ -1534,7 +1585,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
         horaInicio: document.getElementById('evento-hora-inicio').value,
         local: document.getElementById('evento-local').value.trim(),
         valorTotal,
-        valorSinal: Math.round(valorTotal * 0.2 * 100) / 100,
+        valorSinal: parseFloat(document.getElementById('evento-valor-sinal').value) || 0,
         sinalPago: document.getElementById('evento-sinal-pago').checked,
       };
       abrirWhatsapp(clienteDoEvento.whatsapp, mensagemConfirmacaoEvento(dadosMsg, clienteDoEvento));
@@ -1582,7 +1633,8 @@ formEvento.addEventListener('submit', async (e) => {
   const subtotalServicos = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
   const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
   const valorTotal = Math.max(0, subtotalServicos - desconto);
-  const valorSinal = Math.round(valorTotal * 0.2 * 100) / 100;
+  const valorSinal = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
+  const valorSaldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
   const sinalPago = document.getElementById('evento-sinal-pago').checked;
   const saldoPago = document.getElementById('evento-saldo-pago').checked;
   const responsaveisNomes = obterNomesResponsaveisEventoFinal();
@@ -1607,7 +1659,7 @@ formEvento.addEventListener('submit', async (e) => {
     responsaveis: responsaveisNomes.length ? responsaveisNomes : null,
     observacoes: document.getElementById('evento-observacoes').value.trim() || null,
     valor_total: valorTotal || null,
-    valor_sinal: valorTotal ? valorSinal : null,
+    valor_sinal: valorSinal || null,
     desconto: desconto || 0,
     sinal_pago: sinalPago,
     sinal_metodo: sinalPago ? document.getElementById('evento-sinal-metodo').value : null,
@@ -1644,7 +1696,9 @@ formEvento.addEventListener('submit', async (e) => {
   // registrar pagamentos (sinal → negócio, saldo → profissional), evitando duplicar
   if (eventoId && clienteId) {
     if (sinalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal', valorSinal, document.getElementById('evento-sinal-metodo').value, 'negocio', null, perfil);
-    if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorTotal - valorSinal, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
+    else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'sinal');
+    if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorSaldo, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
+    else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'saldo_final');
   }
 
   if (eventoId) await salvarParticipantesGrupo(eventoId, perfil);
@@ -1660,15 +1714,43 @@ formEvento.addEventListener('submit', async (e) => {
 // necessário, grava/atualiza cada evento_participantes, remove as que
 // foram excluídas do formulário e registra pagamento (tipo integral)
 // para as marcadas como pagas.
+// Registra/atualiza/remove o pagamento (sinal ou saldo) de uma cliente
+// específica dentro de um evento em grupo — diferente de
+// registrarPagamentoSeNecessario, filtra também por cliente_id, já que
+// várias clientes do mesmo evento têm pagamentos independentes.
+async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, valor, metodo, perfil) {
+  const { data: existentes } = await supabaseClient
+    .from('pagamentos').select('id').eq('evento_id', eventoId).eq('cliente_id', clienteId).eq('tipo', tipo);
+  if (!pago) {
+    if (existentes && existentes.length) await supabaseClient.from('pagamentos').delete().in('id', existentes.map(p => p.id));
+    return;
+  }
+  if (existentes && existentes.length) {
+    await supabaseClient.from('pagamentos').update({ valor, metodo }).eq('id', existentes[0].id);
+  } else {
+    await supabaseClient.from('pagamentos').insert({
+      cliente_id: clienteId, evento_id: eventoId, tipo, valor, metodo, destino: 'negocio',
+      criado_por: perfil ? perfil.id : null,
+    });
+  }
+}
+
 async function salvarParticipantesGrupo(eventoId, perfil) {
+  const { data: participantesAntigos } = await supabaseClient
+    .from('evento_participantes').select('id, cliente_id').eq('evento_id', eventoId);
+
   const linhas = Array.from(document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo'));
   const idsMantidos = [];
+  const clientesProcessados = [];
 
   for (const linha of linhas) {
     let clienteId = linha.querySelector('.participante-cliente').value;
-    const valor = parseFloat(linha.querySelector('.participante-valor').value) || 0;
-    const pago = linha.querySelector('.participante-pago').checked;
-    const metodo = pago ? linha.querySelector('.participante-metodo').value : null;
+    const valorSinal = parseFloat(linha.querySelector('.participante-valor-sinal').value) || 0;
+    const valorSaldo = parseFloat(linha.querySelector('.participante-valor-saldo').value) || 0;
+    const sinalPago = linha.querySelector('.participante-sinal-pago').checked;
+    const sinalMetodo = sinalPago ? linha.querySelector('.participante-sinal-metodo').value : null;
+    const saldoPago = linha.querySelector('.participante-saldo-pago').checked;
+    const saldoMetodo = saldoPago ? linha.querySelector('.participante-saldo-metodo').value : null;
 
     if (clienteId === '__novo__') {
       const nome = linha.querySelector('.participante-novo-nome').value.trim();
@@ -1687,7 +1769,11 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     }
     if (!clienteId) continue; // nenhuma cliente selecionada, ignora
 
-    const dadosParticipante = { evento_id: eventoId, cliente_id: clienteId, valor, pago, metodo_pagamento: metodo };
+    const dadosParticipante = {
+      evento_id: eventoId, cliente_id: clienteId,
+      valor_sinal: valorSinal, sinal_pago: sinalPago, sinal_metodo: sinalMetodo,
+      valor_saldo: valorSaldo, saldo_pago: saldoPago, saldo_metodo: saldoMetodo,
+    };
     const participanteIdExistente = linha.dataset.participanteId;
     let participanteId = participanteIdExistente;
     if (participanteIdExistente) {
@@ -1698,22 +1784,23 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     }
     if (participanteId) idsMantidos.push(participanteId);
 
-    if (pago) {
-      const { data: pagamentoExistente } = await supabaseClient
-        .from('pagamentos').select('id').eq('evento_id', eventoId).eq('cliente_id', clienteId).eq('tipo', 'integral');
-      if (!pagamentoExistente || pagamentoExistente.length === 0) {
-        await supabaseClient.from('pagamentos').insert({
-          cliente_id: clienteId, evento_id: eventoId, tipo: 'integral', valor, metodo, destino: 'negocio',
-          criado_por: perfil ? perfil.id : null,
-        });
-      }
-    }
+    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal', sinalPago, valorSinal, sinalMetodo, perfil);
+    await registrarPagamentoParticipante(eventoId, clienteId, 'saldo_final', saldoPago, valorSaldo, saldoMetodo, perfil);
+    clientesProcessados.push(clienteId);
   }
 
   // remove do banco as participantes que não estão mais no formulário
   let query = supabaseClient.from('evento_participantes').delete().eq('evento_id', eventoId);
   if (idsMantidos.length) query = query.not('id', 'in', `(${idsMantidos.join(',')})`);
   await query;
+
+  // limpa pagamentos de quem foi removida do grupo
+  const clientesRemovidos = (participantesAntigos || [])
+    .map(p => p.cliente_id)
+    .filter(id => !clientesProcessados.includes(id));
+  for (const clienteId of clientesRemovidos) {
+    await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('cliente_id', clienteId).in('tipo', ['sinal', 'saldo_final']);
+  }
 }
 
 // Espelha o compromisso no Google Calendar do responsável, se ele tiver
@@ -1730,7 +1817,12 @@ function sincronizarGoogleCalendar(eventoId, acao) {
 async function registrarPagamentoSeNecessario(eventoId, clienteId, tipo, valor, metodo, destino, responsavelNome, perfil) {
   const { data: existentes } = await supabaseClient
     .from('pagamentos').select('id').eq('evento_id', eventoId).eq('tipo', tipo);
-  if (existentes && existentes.length > 0) return; // já registrado, não duplicar
+  if (existentes && existentes.length > 0) {
+    // já registrado — atualiza o valor/método, caso a cliente tenha
+    // mandado mais (ou menos) do que o combinado originalmente
+    await supabaseClient.from('pagamentos').update({ valor, metodo }).eq('id', existentes[0].id);
+    return;
+  }
   await supabaseClient.from('pagamentos').insert({
     cliente_id: clienteId, evento_id: eventoId, tipo, valor, metodo, destino,
     responsavel_nome: responsavelNome, criado_por: perfil ? perfil.id : null,
