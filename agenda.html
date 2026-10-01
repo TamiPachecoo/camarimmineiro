@@ -1868,7 +1868,13 @@ function criarLinhaParticipante(participante) {
   div.className = 'linha-participante-grupo';
   if (participante && participante.id) div.dataset.participanteId = participante.id;
 
-  const opcoesClientes = clientesCacheAgenda.map(c => `<option value="${c.id}">${escaparHtmlAgenda(c.nome_noiva)}</option>`).join('');
+  // A cliente principal do compromisso não aparece aqui — ela já está
+  // contada pelos campos principais, adicioná-la de novo como
+  // "participante" duplicaria o valor dela na soma do atendimento.
+  const clientePrincipalId = document.getElementById('evento-cliente').value;
+  const opcoesClientes = clientesCacheAgenda
+    .filter(c => c.id !== clientePrincipalId)
+    .map(c => `<option value="${c.id}">${escaparHtmlAgenda(c.nome_noiva)}</option>`).join('');
   const opcoesMetodo = `<option value="pix">Pix</option><option value="transferencia">Transferência</option><option value="dinheiro">Dinheiro</option><option value="cartao">Cartão</option>`;
   div.innerHTML = `
     <button type="button" class="botao-remover-participante">×</button>
