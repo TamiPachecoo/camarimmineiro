@@ -773,13 +773,14 @@ function abrirWhatsapp(numero, mensagem) {
 
 function mensagemContatoCliente(cliente) {
   const nome = cliente.nome_noiva || '';
+  const convite = ` Ah, e já nos segue no Instagram? instagram.com/camarimmineiro`;
   if (cliente.status === 'contato') {
-    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Para eu verificar a disponibilidade, pode me confirmar a data, o horário e o bairro do atendimento?`;
+    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Para eu verificar a disponibilidade, pode me confirmar a data, o horário e o bairro do atendimento?` + convite;
   }
   if (cliente.status === 'orcamento') {
-    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Passando para fechar os detalhes do seu atendimento. Podemos confirmar?`;
+    return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Passando para fechar os detalhes do seu atendimento. Podemos confirmar?` + convite;
   }
-  return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛`;
+  return `Olá, ${nome}! Aqui é do Camarim Mineiro 💛` + convite;
 }
 
 // ============================================================
