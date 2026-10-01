@@ -1259,20 +1259,31 @@ function mensagemAvisoProfissional(nomeProfissional) {
 function atualizarBotoesAvisarProfissionais() {
   const area = document.getElementById('area-avisar-profissionais');
   const lista = document.getElementById('lista-avisar-profissionais');
-  const comWhats = Array.from(responsaveisEventoSelecionados)
-    .map(nome => perfisCacheAgenda.find(p => p.nome === nome) || profissionaisExternosCacheAgenda.find(p => p.nome === nome))
-    .filter(perfil => perfil && perfil.whatsapp);
+  const selecionados = Array.from(responsaveisEventoSelecionados)
+    .map(nome => ({ nome, perfil: perfisCacheAgenda.find(p => p.nome === nome) || profissionaisExternosCacheAgenda.find(p => p.nome === nome) }));
 
   lista.innerHTML = '';
-  comWhats.forEach(perfil => {
-    const botao = document.createElement('button');
-    botao.type = 'button';
-    botao.className = 'botao-avisar-profissional';
-    botao.textContent = `📋 Avisar ${perfil.nome}`;
-    botao.addEventListener('click', () => abrirWhatsapp(perfil.whatsapp, mensagemAvisoProfissional(perfil.nome)));
-    lista.appendChild(botao);
+  const semWhats = [];
+  selecionados.forEach(({ nome, perfil }) => {
+    if (perfil && perfil.whatsapp) {
+      const botao = document.createElement('button');
+      botao.type = 'button';
+      botao.className = 'botao-avisar-profissional';
+      botao.textContent = `📋 Avisar ${perfil.nome}`;
+      botao.addEventListener('click', () => abrirWhatsapp(perfil.whatsapp, mensagemAvisoProfissional(perfil.nome)));
+      lista.appendChild(botao);
+    } else {
+      semWhats.push(nome);
+    }
   });
-  area.classList.toggle('oculto', comWhats.length === 0);
+  if (semWhats.length) {
+    const aviso = document.createElement('p');
+    aviso.className = 'subtitulo';
+    aviso.style.margin = '0.4rem 0 0';
+    aviso.textContent = `${semWhats.join(', ')} sem WhatsApp salvo — adicione em Integrações para poder avisar.`;
+    lista.appendChild(aviso);
+  }
+  area.classList.toggle('oculto', selecionados.length === 0);
 }
 
 function definirResponsavelEventoNoFormulario(nomesSalvos) {
