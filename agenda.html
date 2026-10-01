@@ -1272,6 +1272,13 @@ function mensagemAvisoProfissional(nomeProfissional) {
   msg += '.';
   if (servicos.length) msg += ` Serviços: ${servicos.join(', ')}.`;
   if (observacoes) msg += ` Obs: ${observacoes}.`;
+
+  // Só o que é dela: o sinal que vai pra profissional e o saldo do dia.
+  // O sinal do negócio é informação interna, não entra na mensagem.
+  const sinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
+  const saldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
+  if (sinalProfissional > 0) msg += ` Seu sinal: R$ ${sinalProfissional.toFixed(2)}.`;
+  if (saldo > 0) msg += ` Saldo no dia: R$ ${saldo.toFixed(2)}.`;
   return msg;
 }
 
