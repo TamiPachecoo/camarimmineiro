@@ -782,18 +782,15 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           <span>Valor total (com desconto)</span>
           <span class="valor-sinal-destaque" id="valor-total-evento-display">R$ 0.00</span>
         </div>
+        <p class="rotulo-dica" style="display:block; margin:0.2rem 0 0.6rem">Três valores separados: sinal pro negócio, sinal pra profissional, e o saldo final (pago no dia) pra profissional.</p>
+
         <div class="linha-pagamento-sinal linha-pagamento-editavel">
-          <span>Sinal recebido <span class="rotulo-dica">(sugestão: 20% — edite se for diferente)</span></span>
+          <span>Sinal — negócio <span class="rotulo-dica">(sugestão: 20%)</span></span>
           <input type="number" class="campo-valor-destaque" id="evento-valor-sinal" step="0.01" min="0">
         </div>
-        <div class="linha-pagamento-sinal linha-pagamento-editavel">
-          <span>Saldo a receber no dia</span>
-          <input type="number" class="campo-valor-destaque" id="evento-valor-saldo" step="0.01" min="0">
-        </div>
-
         <div class="check-pagamento">
           <input type="checkbox" id="evento-sinal-pago">
-          <label for="evento-sinal-pago">Sinal já foi pago</label>
+          <label for="evento-sinal-pago">Sinal (negócio) já foi pago</label>
         </div>
         <div class="campo-metodo-pagamento oculto" id="campo-sinal-metodo">
           <select id="evento-sinal-metodo">
@@ -804,6 +801,27 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           </select>
         </div>
 
+        <div class="linha-pagamento-sinal linha-pagamento-editavel">
+          <span>Sinal — profissional</span>
+          <input type="number" class="campo-valor-destaque" id="evento-valor-sinal-profissional" step="0.01" min="0">
+        </div>
+        <div class="check-pagamento">
+          <input type="checkbox" id="evento-sinal-profissional-pago">
+          <label for="evento-sinal-profissional-pago">Sinal (profissional) já foi pago</label>
+        </div>
+        <div class="campo-metodo-pagamento oculto" id="campo-sinal-profissional-metodo">
+          <select id="evento-sinal-profissional-metodo">
+            <option value="pix">Pix</option>
+            <option value="transferencia">Transferência</option>
+            <option value="dinheiro">Dinheiro</option>
+            <option value="cartao">Cartão</option>
+          </select>
+        </div>
+
+        <div class="linha-pagamento-sinal linha-pagamento-editavel">
+          <span>Saldo final — profissional <span class="rotulo-dica">(pago no dia)</span></span>
+          <input type="number" class="campo-valor-destaque" id="evento-valor-saldo" step="0.01" min="0">
+        </div>
         <div class="check-pagamento">
           <input type="checkbox" id="evento-saldo-pago">
           <label for="evento-saldo-pago">Saldo pago no dia</label>
@@ -1498,12 +1516,21 @@ const modalEvento = document.getElementById('modal-evento');
 const formEvento = document.getElementById('form-evento');
 let eventoEmEdicao = null;
 
-// Sinal e saldo começam como sugestão (20%/80%), mas são editáveis —
-// o valor realmente recebido pode ser diferente (depósito fixo por
-// pessoa, cliente que mandou a mais, etc). Uma vez editados à mão,
-// deixam de ser recalculados automaticamente quando os serviços mudam.
+// Três valores: sinal pro negócio (sugestão: 20%), sinal pra profissional
+// (sem sugestão — varia caso a caso) e saldo final pra profissional
+// (o resto). Todos editáveis; uma vez editado à mão, o campo deixa de
+// ser recalculado automaticamente quando os serviços/outros campos mudam.
 let sinalEditadoManualmente = false;
+let sinalProfissionalEditadoManualmente = false;
 let saldoEditadoManualmente = false;
+
+function recalcularSaldoAutomatico() {
+  if (saldoEditadoManualmente) return;
+  const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
+  const sinal = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
+  const sinalProf = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
+  document.getElementById('evento-valor-saldo').value = Math.max(0, total - sinal - sinalProf).toFixed(2);
+}
 
 function calcularSinal() {
   const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
@@ -1512,28 +1539,26 @@ function calcularSinal() {
   document.getElementById('valor-subtotal-evento-display').textContent = `R$ ${subtotal.toFixed(2)}`;
   document.getElementById('valor-total-evento-display').textContent = `R$ ${total.toFixed(2)}`;
 
-  const campoSinal = document.getElementById('evento-valor-sinal');
-  const campoSaldo = document.getElementById('evento-valor-saldo');
-  if (!sinalEditadoManualmente) campoSinal.value = (total * 0.2).toFixed(2);
-  if (!saldoEditadoManualmente) {
-    const sinalAtual = parseFloat(campoSinal.value) || 0;
-    campoSaldo.value = Math.max(0, total - sinalAtual).toFixed(2);
-  }
-  return parseFloat(campoSinal.value) || 0;
+  if (!sinalEditadoManualmente) document.getElementById('evento-valor-sinal').value = (total * 0.2).toFixed(2);
+  recalcularSaldoAutomatico();
+  return parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
 document.getElementById('evento-valor-sinal').addEventListener('input', () => {
   sinalEditadoManualmente = true;
-  if (!saldoEditadoManualmente) {
-    const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
-    const sinalAtual = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
-    document.getElementById('evento-valor-saldo').value = Math.max(0, total - sinalAtual).toFixed(2);
-  }
+  recalcularSaldoAutomatico();
+});
+document.getElementById('evento-valor-sinal-profissional').addEventListener('input', () => {
+  sinalProfissionalEditadoManualmente = true;
+  recalcularSaldoAutomatico();
 });
 document.getElementById('evento-valor-saldo').addEventListener('input', () => { saldoEditadoManualmente = true; });
 
 document.getElementById('evento-sinal-pago').addEventListener('change', (e) => {
   document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !e.target.checked);
+});
+document.getElementById('evento-sinal-profissional-pago').addEventListener('change', (e) => {
+  document.getElementById('campo-sinal-profissional-metodo').classList.toggle('oculto', !e.target.checked);
 });
 document.getElementById('evento-saldo-pago').addEventListener('change', (e) => {
   document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !e.target.checked);
@@ -1569,20 +1594,32 @@ function criarLinhaParticipante(participante) {
 
     <div class="linha-form" style="margin-top:0.6rem">
       <div class="campo-form">
-        <label>Sinal recebido (R$)</label>
+        <label>Sinal — negócio (R$)</label>
         <input type="number" class="participante-valor-sinal" step="0.01" min="0" placeholder="0.00">
       </div>
       <div class="campo-form">
-        <label>Saldo a receber no dia (R$)</label>
-        <input type="number" class="participante-valor-saldo" step="0.01" min="0" placeholder="0.00">
+        <label>Sinal — profissional (R$)</label>
+        <input type="number" class="participante-valor-sinal-profissional" step="0.01" min="0" placeholder="0.00">
       </div>
     </div>
     <div class="check-pagamento">
       <input type="checkbox" class="participante-sinal-pago" id="participante-sinal-pago-${idx}">
-      <label for="participante-sinal-pago-${idx}">Sinal já foi pago</label>
+      <label for="participante-sinal-pago-${idx}">Sinal (negócio) já foi pago</label>
     </div>
     <div class="campo-metodo-pagamento oculto participante-sinal-metodo-wrap">
       <select class="participante-sinal-metodo">${opcoesMetodo}</select>
+    </div>
+    <div class="check-pagamento">
+      <input type="checkbox" class="participante-sinal-profissional-pago" id="participante-sinal-profissional-pago-${idx}">
+      <label for="participante-sinal-profissional-pago-${idx}">Sinal (profissional) já foi pago</label>
+    </div>
+    <div class="campo-metodo-pagamento oculto participante-sinal-profissional-metodo-wrap">
+      <select class="participante-sinal-profissional-metodo">${opcoesMetodo}</select>
+    </div>
+
+    <div class="campo-form" style="margin-top:0.4rem">
+      <label>Saldo final — profissional, pago no dia (R$)</label>
+      <input type="number" class="participante-valor-saldo" step="0.01" min="0" placeholder="0.00">
     </div>
     <div class="check-pagamento">
       <input type="checkbox" class="participante-saldo-pago" id="participante-saldo-pago-${idx}">
@@ -1597,16 +1634,22 @@ function criarLinhaParticipante(participante) {
   const blocoNovaCliente = div.querySelector('.bloco-nova-cliente-participante');
   const checkSinalPago = div.querySelector('.participante-sinal-pago');
   const sinalMetodoWrap = div.querySelector('.participante-sinal-metodo-wrap');
+  const checkSinalProfissionalPago = div.querySelector('.participante-sinal-profissional-pago');
+  const sinalProfissionalMetodoWrap = div.querySelector('.participante-sinal-profissional-metodo-wrap');
   const checkSaldoPago = div.querySelector('.participante-saldo-pago');
   const saldoMetodoWrap = div.querySelector('.participante-saldo-metodo-wrap');
 
   if (participante) {
     seletorCliente.value = participante.cliente_id || '';
     div.querySelector('.participante-valor-sinal').value = participante.valor_sinal || '';
+    div.querySelector('.participante-valor-sinal-profissional').value = participante.valor_sinal_profissional || '';
     div.querySelector('.participante-valor-saldo').value = participante.valor_saldo || '';
     checkSinalPago.checked = !!participante.sinal_pago;
     sinalMetodoWrap.classList.toggle('oculto', !participante.sinal_pago);
     div.querySelector('.participante-sinal-metodo').value = participante.sinal_metodo || 'pix';
+    checkSinalProfissionalPago.checked = !!participante.sinal_profissional_pago;
+    sinalProfissionalMetodoWrap.classList.toggle('oculto', !participante.sinal_profissional_pago);
+    div.querySelector('.participante-sinal-profissional-metodo').value = participante.sinal_profissional_metodo || 'pix';
     checkSaldoPago.checked = !!participante.saldo_pago;
     saldoMetodoWrap.classList.toggle('oculto', !participante.saldo_pago);
     div.querySelector('.participante-saldo-metodo').value = participante.saldo_metodo || 'pix';
@@ -1616,6 +1659,7 @@ function criarLinhaParticipante(participante) {
     blocoNovaCliente.classList.toggle('oculto', seletorCliente.value !== '__novo__');
   });
   checkSinalPago.addEventListener('change', () => sinalMetodoWrap.classList.toggle('oculto', !checkSinalPago.checked));
+  checkSinalProfissionalPago.addEventListener('change', () => sinalProfissionalMetodoWrap.classList.toggle('oculto', !checkSinalProfissionalPago.checked));
   checkSaldoPago.addEventListener('change', () => saldoMetodoWrap.classList.toggle('oculto', !checkSaldoPago.checked));
   div.querySelector('.botao-remover-participante').addEventListener('click', () => div.remove());
 
@@ -1631,10 +1675,12 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   document.getElementById('evento-id').value = '';
   document.getElementById('erro-evento').textContent = '';
   document.getElementById('campo-sinal-metodo').classList.add('oculto');
+  document.getElementById('campo-sinal-profissional-metodo').classList.add('oculto');
   document.getElementById('campo-saldo-metodo').classList.add('oculto');
   document.getElementById('bloco-nova-cliente-rapida').classList.add('oculto');
   document.getElementById('lista-participantes-grupo').innerHTML = '';
   sinalEditadoManualmente = false;
+  sinalProfissionalEditadoManualmente = false;
   saldoEditadoManualmente = false;
   eventoEmEdicao = evento;
 
@@ -1682,14 +1728,21 @@ async function abrirModalEvento(modo, evento, diaClicado) {
       document.getElementById('evento-valor-sinal').value = Number(evento.valor_sinal).toFixed(2);
       sinalEditadoManualmente = true;
     }
+    if (evento.valor_sinal_profissional != null) {
+      document.getElementById('evento-valor-sinal-profissional').value = Number(evento.valor_sinal_profissional).toFixed(2);
+      sinalProfissionalEditadoManualmente = true;
+    }
     if (evento.valor_total != null) {
-      document.getElementById('evento-valor-saldo').value = Math.max(0, Number(evento.valor_total) - Number(evento.valor_sinal || 0)).toFixed(2);
+      document.getElementById('evento-valor-saldo').value = Math.max(0, Number(evento.valor_total) - Number(evento.valor_sinal || 0) - Number(evento.valor_sinal_profissional || 0)).toFixed(2);
       saldoEditadoManualmente = true;
     }
 
     document.getElementById('evento-sinal-pago').checked = !!evento.sinal_pago;
     document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !evento.sinal_pago);
     document.getElementById('evento-sinal-metodo').value = evento.sinal_metodo || 'pix';
+    document.getElementById('evento-sinal-profissional-pago').checked = !!evento.sinal_profissional_pago;
+    document.getElementById('campo-sinal-profissional-metodo').classList.toggle('oculto', !evento.sinal_profissional_pago);
+    document.getElementById('evento-sinal-profissional-metodo').value = evento.sinal_profissional_metodo || 'pix';
     document.getElementById('evento-saldo-pago').checked = !!evento.saldo_pago;
     document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !evento.saldo_pago);
     document.getElementById('evento-saldo-metodo').value = evento.saldo_metodo || 'pix';
@@ -1744,13 +1797,15 @@ formEvento.addEventListener('submit', async (e) => {
   const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
   const valorTotal = Math.max(0, subtotalServicos - desconto);
   const valorSinal = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
+  const valorSinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
   const valorSaldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
   const sinalPago = document.getElementById('evento-sinal-pago').checked;
+  const sinalProfissionalPago = document.getElementById('evento-sinal-profissional-pago').checked;
   const saldoPago = document.getElementById('evento-saldo-pago').checked;
   const responsaveisNomes = obterNomesResponsaveisEventoFinal();
   const responsavelNome = responsaveisNomes.join(' e ') || null;
 
-  if ((sinalPago || saldoPago) && !clienteId) {
+  if ((sinalPago || sinalProfissionalPago || saldoPago) && !clienteId) {
     erroEl.textContent = 'Selecione um cliente para registrar pagamento.';
     return;
   }
@@ -1770,9 +1825,12 @@ formEvento.addEventListener('submit', async (e) => {
     observacoes: document.getElementById('evento-observacoes').value.trim() || null,
     valor_total: valorTotal || null,
     valor_sinal: valorSinal || null,
+    valor_sinal_profissional: valorSinalProfissional || null,
     desconto: desconto || 0,
     sinal_pago: sinalPago,
     sinal_metodo: sinalPago ? document.getElementById('evento-sinal-metodo').value : null,
+    sinal_profissional_pago: sinalProfissionalPago,
+    sinal_profissional_metodo: sinalProfissionalPago ? document.getElementById('evento-sinal-profissional-metodo').value : null,
     saldo_pago: saldoPago,
     saldo_metodo: saldoPago ? document.getElementById('evento-saldo-metodo').value : null,
   };
@@ -1803,10 +1861,12 @@ formEvento.addEventListener('submit', async (e) => {
     }
   }
 
-  // registrar pagamentos (sinal → negócio, saldo → profissional), evitando duplicar
+  // registrar pagamentos — três vias: sinal → negócio, sinal → profissional, saldo → profissional
   if (eventoId && clienteId) {
     if (sinalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal', valorSinal, document.getElementById('evento-sinal-metodo').value, 'negocio', null, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'sinal');
+    if (sinalProfissionalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal_profissional', valorSinalProfissional, document.getElementById('evento-sinal-profissional-metodo').value, 'profissional', responsavelNome, perfil);
+    else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'sinal_profissional');
     if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorSaldo, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'saldo_final');
   }
@@ -1856,9 +1916,12 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
   for (const linha of linhas) {
     let clienteId = linha.querySelector('.participante-cliente').value;
     const valorSinal = parseFloat(linha.querySelector('.participante-valor-sinal').value) || 0;
+    const valorSinalProfissional = parseFloat(linha.querySelector('.participante-valor-sinal-profissional').value) || 0;
     const valorSaldo = parseFloat(linha.querySelector('.participante-valor-saldo').value) || 0;
     const sinalPago = linha.querySelector('.participante-sinal-pago').checked;
     const sinalMetodo = sinalPago ? linha.querySelector('.participante-sinal-metodo').value : null;
+    const sinalProfissionalPago = linha.querySelector('.participante-sinal-profissional-pago').checked;
+    const sinalProfissionalMetodo = sinalProfissionalPago ? linha.querySelector('.participante-sinal-profissional-metodo').value : null;
     const saldoPago = linha.querySelector('.participante-saldo-pago').checked;
     const saldoMetodo = saldoPago ? linha.querySelector('.participante-saldo-metodo').value : null;
 
@@ -1882,6 +1945,7 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     const dadosParticipante = {
       evento_id: eventoId, cliente_id: clienteId,
       valor_sinal: valorSinal, sinal_pago: sinalPago, sinal_metodo: sinalMetodo,
+      valor_sinal_profissional: valorSinalProfissional, sinal_profissional_pago: sinalProfissionalPago, sinal_profissional_metodo: sinalProfissionalMetodo,
       valor_saldo: valorSaldo, saldo_pago: saldoPago, saldo_metodo: saldoMetodo,
     };
     const participanteIdExistente = linha.dataset.participanteId;
@@ -1895,6 +1959,7 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     if (participanteId) idsMantidos.push(participanteId);
 
     await registrarPagamentoParticipante(eventoId, clienteId, 'sinal', sinalPago, valorSinal, sinalMetodo, perfil);
+    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal_profissional', sinalProfissionalPago, valorSinalProfissional, sinalProfissionalMetodo, perfil);
     await registrarPagamentoParticipante(eventoId, clienteId, 'saldo_final', saldoPago, valorSaldo, saldoMetodo, perfil);
     clientesProcessados.push(clienteId);
   }
@@ -1909,7 +1974,7 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     .map(p => p.cliente_id)
     .filter(id => !clientesProcessados.includes(id));
   for (const clienteId of clientesRemovidos) {
-    await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('cliente_id', clienteId).in('tipo', ['sinal', 'saldo_final']);
+    await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('cliente_id', clienteId).in('tipo', ['sinal', 'sinal_profissional', 'saldo_final']);
   }
 }
 

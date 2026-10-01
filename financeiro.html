@@ -947,7 +947,7 @@ function renderizarTabelaPagamentos() {
     corpoEl.innerHTML = '<tr><td colspan="6" style="padding:1.5rem; text-align:center; color:var(--ink2)">Nenhum pagamento neste período.</td></tr>';
     return;
   }
-  const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+  const rotulosTipo = { sinal: 'Sinal (negócio)', sinal_profissional: 'Sinal (profissional)', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
   corpoEl.innerHTML = pagamentosFiltrados.map(p => `
     <tr>
       <td>${new Date(p.data_pagamento + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
@@ -1012,7 +1012,7 @@ function exportarExcelFinanceiro() {
   const script = document.createElement('script');
   script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
   script.onload = () => {
-    const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+    const rotulosTipo = { sinal: 'Sinal (negócio)', sinal_profissional: 'Sinal (profissional)', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
     const linhas = [['Data', 'Cliente', 'Tipo', 'Destino', 'Responsável', 'Método', 'Valor (R$)']];
     pagamentosFiltrados.forEach(p => linhas.push([
       new Date(p.data_pagamento + 'T12:00:00').toLocaleDateString('pt-BR'),
@@ -1071,7 +1071,7 @@ function exportarPdfFinanceiro() {
     headers.forEach((h,i) => doc.text(h, cols[i]+1, y+5));
     y += 9;
 
-    const rotulosTipo = { sinal: 'Sinal', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
+    const rotulosTipo = { sinal: 'Sinal (negócio)', sinal_profissional: 'Sinal (profissional)', parcela: 'Parcela', saldo_final: 'Saldo final', integral: 'Integral' };
     doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
     pagamentosFiltrados.forEach((p, i) => {
       if (y > 275) { doc.addPage(); y = 20; }
