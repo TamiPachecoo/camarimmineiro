@@ -1063,13 +1063,23 @@ function chaveData(d) {
 let catalogoServicosAgenda = [];
 let quantidadesServicoEvento = {};
 
+// Reconstrói as opções do <select> de cliente a partir de clientesCacheAgenda.
+// Precisa ser chamada de novo sempre que uma cliente nova é criada no meio
+// de uma sessão (pelo quick-add), senão o <select> fica com as opções
+// antigas e perde a seleção ao reabrir o compromisso.
+function atualizarOpcoesSelectClientes() {
+  const selectCliente = document.getElementById('evento-cliente');
+  const valorAtual = selectCliente.value;
+  selectCliente.innerHTML = '<option value="">Nenhum (evento interno)</option>' +
+    '<option value="__novo__">+ Nova cliente...</option>' +
+    clientesCacheAgenda.map(c => `<option value="${c.id}">${escaparHtmlAgenda(c.nome_noiva)}</option>`).join('');
+  selectCliente.value = valorAtual;
+}
+
 async function carregarClientesEPerfis() {
   const { data: clientes } = await supabaseClient.from('clientes').select('id, nome_noiva, tipo_cliente, endereco, whatsapp').order('nome_noiva');
   clientesCacheAgenda = clientes || [];
-  const selectCliente = document.getElementById('evento-cliente');
-  selectCliente.innerHTML = '<option value="">Nenhum (evento interno)</option>' +
-    '<option value="__novo__">+ Nova cliente...</option>' +
-    clientesCacheAgenda.map(c => `<option value="${c.id}">${c.nome_noiva}</option>`).join('');
+  atualizarOpcoesSelectClientes();
 
   const { data: servicos } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
   catalogoServicosAgenda = servicos || [];
@@ -1566,6 +1576,7 @@ formEvento.addEventListener('submit', async (e) => {
     if (erroNovaCliente) { erroEl.textContent = `Erro ao criar cliente: ${erroNovaCliente.message}`; return; }
     clienteId = novaCliente.id;
     clientesCacheAgenda.push(novaCliente);
+    atualizarOpcoesSelectClientes();
   }
 
   const subtotalServicos = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
@@ -1672,6 +1683,7 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
       if (erroNovaCliente) continue;
       clienteId = novaCliente.id;
       clientesCacheAgenda.push(novaCliente);
+      atualizarOpcoesSelectClientes();
     }
     if (!clienteId) continue; // nenhuma cliente selecionada, ignora
 
