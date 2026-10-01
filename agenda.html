@@ -602,9 +602,9 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   width: 100px; text-align: right; padding: 0.35rem 0.5rem; background: var(--surface2);
   border: 1px solid var(--border); border-radius: 7px; flex-shrink: 0;
 }
-#bloco-nova-cliente-rapida {
+#bloco-nova-cliente-rapida, #bloco-nova-profissional-rapida {
   background: var(--teal-dim); border: 1px solid var(--teal); border-radius: var(--radius-sm);
-  padding: 0.9rem 1rem 0.2rem; margin: 0.3rem 0 1rem;
+  padding: 0.9rem 1rem 0.9rem; margin: 0.3rem 0 1rem;
 }
 .check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
@@ -757,6 +757,19 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       <label>Responsáveis <span class="rotulo-dica">(pode marcar mais de uma)</span></label>
       <div class="opcoes-responsavel" id="opcoes-responsavel"></div>
       <input type="text" id="evento-responsavel-outra" placeholder="Outros nomes, separados por vírgula" class="oculto" style="margin-top:0.5rem">
+      <div class="oculto" id="bloco-nova-profissional-rapida">
+        <div class="linha-form">
+          <div class="campo-form">
+            <label for="nova-profissional-nome">Nome da profissional *</label>
+            <input type="text" id="nova-profissional-nome" placeholder="Nome completo">
+          </div>
+          <div class="campo-form">
+            <label for="nova-profissional-whatsapp">WhatsApp</label>
+            <input type="text" id="nova-profissional-whatsapp" placeholder="+55 31 9....">
+          </div>
+        </div>
+        <button type="button" class="botao-texto" id="botao-salvar-nova-profissional" style="margin-top:0.2rem">+ Adicionar à equipe</button>
+      </div>
       <div class="oculto" id="area-avisar-profissionais">
         <div id="lista-avisar-profissionais" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.6rem"></div>
       </div>
@@ -1172,6 +1185,7 @@ function renderizarOpcoesResponsavel() {
   const nomesExtras = profissionaisExternosCacheAgenda.map(p => p.nome);
   const opcoes = ['Tami', 'Stefania', ...nomesExtras];
   container.innerHTML = opcoes.map(nome => `<div class="opcao-responsavel" data-valor="${escaparHtmlAgenda(nome)}">${escaparHtmlAgenda(nome)}</div>`).join('')
+    + `<div class="opcao-responsavel" data-valor="__nova__">+ Nova profissional</div>`
     + `<div class="opcao-responsavel" data-valor="Outra">Outra(s)</div>`;
 }
 
@@ -1235,6 +1249,12 @@ document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
   if (!botao) return;
   const valor = botao.dataset.valor;
   const campoOutra = document.getElementById('evento-responsavel-outra');
+  if (valor === '__nova__') {
+    const bloco = document.getElementById('bloco-nova-profissional-rapida');
+    bloco.classList.remove('oculto');
+    document.getElementById('nova-profissional-nome').focus();
+    return;
+  }
   if (valor === 'Outra') {
     const ativar = !botao.classList.contains('selecionado');
     botao.classList.toggle('selecionado', ativar);
@@ -1246,6 +1266,31 @@ document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
   if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
   else responsaveisEventoSelecionados.delete(valor);
   atualizarBotoesAvisarProfissionais();
+});
+
+// Cria uma profissional externa na hora (nome + WhatsApp), sem precisar
+// ir até Integrações antes, e já marca ela como responsável.
+document.getElementById('botao-salvar-nova-profissional').addEventListener('click', async () => {
+  const nome = document.getElementById('nova-profissional-nome').value.trim();
+  const whatsapp = document.getElementById('nova-profissional-whatsapp').value.trim();
+  if (!nome) { toast('Digite o nome da profissional.', 'erro'); return; }
+  const { data: nova, error } = await supabaseClient.from('profissionais_externos')
+    .insert({ nome, whatsapp: whatsapp || null }).select().single();
+  if (error) { toast('Erro ao adicionar: ' + error.message, 'erro'); return; }
+
+  profissionaisExternosCacheAgenda.push(nova);
+  renderizarOpcoesResponsavel();
+  document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => {
+    if (responsaveisEventoSelecionados.has(b.dataset.valor)) b.classList.add('selecionado');
+  });
+  const botaoNova = document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${CSS.escape(nome)}"]`);
+  if (botaoNova) { botaoNova.classList.add('selecionado'); responsaveisEventoSelecionados.add(nome); }
+
+  document.getElementById('nova-profissional-nome').value = '';
+  document.getElementById('nova-profissional-whatsapp').value = '';
+  document.getElementById('bloco-nova-profissional-rapida').classList.add('oculto');
+  atualizarBotoesAvisarProfissionais();
+  toast(`${nome} adicionada à equipe.`, 'sucesso');
 });
 
 // ---- AVISAR PROFISSIONAIS — WhatsApp com endereço/cliente/serviços ----
@@ -1271,6 +1316,12 @@ function mensagemAvisoProfissional(nomeProfissional) {
   if (local) msg += `, em ${local}`;
   msg += '.';
   if (servicos.length) msg += ` Serviços: ${servicos.join(', ')}.`;
+
+  // Quem mais tá na equipe desse atendimento — quem está marcando (dona/sócia
+  // incluída) também quer saber quem foi designada, não só a profissional avisada.
+  const equipe = obterNomesResponsaveisEventoFinal();
+  if (equipe.length > 1) msg += ` Equipe: ${equipe.join(', ')}.`;
+
   if (observacoes) msg += ` Obs: ${observacoes}.`;
 
   // Só o que é dela: o sinal que vai pra profissional e o saldo do dia.
@@ -1695,6 +1746,9 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   document.getElementById('campo-sinal-profissional-metodo').classList.add('oculto');
   document.getElementById('campo-saldo-metodo').classList.add('oculto');
   document.getElementById('bloco-nova-cliente-rapida').classList.add('oculto');
+  document.getElementById('bloco-nova-profissional-rapida').classList.add('oculto');
+  document.getElementById('nova-profissional-nome').value = '';
+  document.getElementById('nova-profissional-whatsapp').value = '';
   document.getElementById('lista-participantes-grupo').innerHTML = '';
   sinalEditadoManualmente = false;
   sinalProfissionalEditadoManualmente = false;
