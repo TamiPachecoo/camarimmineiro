@@ -1303,6 +1303,11 @@ document.getElementById('botao-salvar-nova-profissional').addEventListener('clic
 });
 
 // ---- AVISAR PROFISSIONAIS — WhatsApp com endereço/cliente/serviços ----
+// Como cada uma gosta de ser chamada na mensagem (nome completo fica
+// só nos registros internos).
+const APELIDOS_PROFISSIONAIS = { Stefania: 'Ste' };
+function apelido(nome) { return APELIDOS_PROFISSIONAIS[nome] || nome; }
+
 function mensagemAvisoProfissional(nomeProfissional) {
   const clienteSelecionado = document.getElementById('evento-cliente').value;
   let nomeCliente = '';
@@ -1320,7 +1325,7 @@ function mensagemAvisoProfissional(nomeProfissional) {
   const servicos = listaServicosSelecionados();
   const dataFmt = data ? new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR') : '';
 
-  let msg = `Oi, ${nomeProfissional}! Lembrete de atendimento${titulo ? ` (${titulo})` : ''}: ${dataFmt}${horaInicio ? ` às ${horaInicio}` : ''}`;
+  let msg = `Oi, ${apelido(nomeProfissional)}! Lembrete de atendimento${titulo ? ` (${titulo})` : ''}: ${dataFmt}${horaInicio ? ` às ${horaInicio}` : ''}`;
   if (nomeCliente) msg += `, cliente ${nomeCliente}`;
   if (local) msg += `, em ${local}`;
   msg += '.';
@@ -1329,7 +1334,7 @@ function mensagemAvisoProfissional(nomeProfissional) {
   // Quem mais tá na equipe desse atendimento — quem está marcando (dona/sócia
   // incluída) também quer saber quem foi designada, não só a profissional avisada.
   const equipe = obterNomesResponsaveisEventoFinal();
-  if (equipe.length > 1) msg += ` Equipe: ${equipe.join(', ')}.`;
+  if (equipe.length > 1) msg += ` Equipe: ${equipe.map(apelido).join(', ')}.`;
 
   if (observacoes) msg += ` Obs: ${observacoes}.`;
 
