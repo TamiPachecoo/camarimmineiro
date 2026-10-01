@@ -145,6 +145,9 @@ h1, h2, h3 {
 }
 .campo-form input:focus { outline: none; border-color: var(--teal); background: var(--white); }
 @media (max-width: 480px) { .linha-form { flex-direction: column; gap: 0.6rem; } }
+.check-pagamento { display: flex; align-items: center; gap: 0.5rem; }
+.check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
+.check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; color: var(--ink); cursor: pointer; }
 .etiqueta-conectado { font-size: 0.72rem; font-weight: 600; color: var(--teal-deep); background: var(--teal-dim); padding: 0.25rem 0.6rem; border-radius: 999px; }
 .etiqueta-desconectado { font-size: 0.72rem; font-weight: 600; color: var(--ink2); background: var(--surface3); padding: 0.25rem 0.6rem; border-radius: 999px; }
 
@@ -205,8 +208,8 @@ h1, h2, h3 {
   </div>
 
   <div class="cartao-integracao">
-    <div class="cartao-integracao-topo"><h2>WhatsApp das profissionais</h2></div>
-    <p class="desc">Usado pelo botão "Avisar" na Agenda, que manda o endereço, a cliente e os serviços do atendimento direto pro WhatsApp de quem vai atender.</p>
+    <div class="cartao-integracao-topo"><h2>WhatsApp e Pix</h2></div>
+    <p class="desc">O WhatsApp é usado pelo botão "Avisar" na Agenda (endereço, cliente e serviços do atendimento). A chave Pix fica à mão na Agenda na hora de repassar o sinal/saldo de cada uma.</p>
     <div id="lista-perfis-whatsapp">
       <p class="subtitulo" style="margin:0">Carregando perfis...</p>
     </div>
@@ -214,11 +217,18 @@ h1, h2, h3 {
 
   <div class="cartao-integracao">
     <div class="cartao-integracao-topo"><h2>Outras profissionais</h2></div>
-    <p class="desc">Freelancers e assistentes que ajudam em atendimentos mas não têm login no app. Aparecem como opção em "Responsáveis" na Agenda, com botão de avisar no WhatsApp.</p>
+    <p class="desc">Freelancers e assistentes que ajudam em atendimentos mas não têm login no app. Aparecem como opção em "Responsáveis" na Agenda, com botão de avisar no WhatsApp. Marque como recorrente quem trabalha com vocês com frequência, pra guardar a chave Pix dela também.</p>
     <div id="lista-profissionais-externos" style="margin-bottom:0.9rem"></div>
     <div class="linha-form">
       <div class="campo-form"><input type="text" id="novo-profissional-nome" placeholder="Nome"></div>
       <div class="campo-form"><input type="text" id="novo-profissional-whatsapp" placeholder="WhatsApp (+55 31 9....)"></div>
+    </div>
+    <div class="check-pagamento" style="margin-top:0.6rem">
+      <input type="checkbox" id="novo-profissional-recorrente">
+      <label for="novo-profissional-recorrente">É recorrente (trabalha com vocês com frequência)</label>
+    </div>
+    <div class="campo-form oculto" id="bloco-novo-profissional-pix" style="margin-top:0.4rem">
+      <input type="text" id="novo-profissional-pix" placeholder="Chave Pix">
     </div>
     <button type="button" class="botao-secundario" id="botao-adicionar-profissional-externo" style="margin-top:0.6rem">+ Adicionar</button>
   </div>
@@ -363,24 +373,30 @@ if (paramsUrl.get('google') === 'erro') toast('Não foi possível conectar o Goo
 
 async function carregarPerfisWhatsapp() {
   const container = document.getElementById('lista-perfis-whatsapp');
-  const { data: perfis, error } = await supabaseClient.from('perfis').select('id, nome, whatsapp');
+  const { data: perfis, error } = await supabaseClient.from('perfis').select('id, nome, whatsapp, chave_pix');
   if (error) { container.innerHTML = `<p class="erro">Erro ao carregar perfis: ${error.message}</p>`; return; }
 
   container.innerHTML = '';
   perfis.forEach(perfil => {
     const linha = document.createElement('div');
     linha.className = 'linha-perfil-google';
+    linha.style.flexDirection = 'column';
+    linha.style.alignItems = 'stretch';
+    linha.style.gap = '0.6rem';
     linha.innerHTML = `
       <span class="linha-perfil-google-nome">${perfil.nome}</span>
-      <div style="display:flex; gap:0.5rem; align-items:center">
-        <input type="text" class="campo-whatsapp-perfil" placeholder="+55 31 9...." value="${perfil.whatsapp || ''}" style="width:150px">
-        <button type="button" class="botao-secundario" data-perfil="${perfil.id}">Salvar</button>
+      <div class="linha-form">
+        <div class="campo-form"><input type="text" class="campo-whatsapp-perfil" placeholder="WhatsApp: +55 31 9...." value="${perfil.whatsapp || ''}"></div>
+        <div class="campo-form"><input type="text" class="campo-pix-perfil" placeholder="Chave Pix" value="${perfil.chave_pix || ''}"></div>
       </div>
+      <button type="button" class="botao-secundario" data-perfil="${perfil.id}" style="align-self:flex-start">Salvar</button>
     `;
-    linha.querySelector('button').addEventListener('click', async (e) => {
-      const numero = linha.querySelector('.campo-whatsapp-perfil').value.trim();
-      const { error: erroSalvar } = await supabaseClient.from('perfis').update({ whatsapp: numero || null }).eq('id', perfil.id);
-      toast(erroSalvar ? 'Erro ao salvar: ' + erroSalvar.message : 'WhatsApp salvo.', erroSalvar ? 'erro' : 'sucesso');
+    linha.querySelector('button').addEventListener('click', async () => {
+      const whatsapp = linha.querySelector('.campo-whatsapp-perfil').value.trim();
+      const chavePix = linha.querySelector('.campo-pix-perfil').value.trim();
+      const { error: erroSalvar } = await supabaseClient.from('perfis')
+        .update({ whatsapp: whatsapp || null, chave_pix: chavePix || null }).eq('id', perfil.id);
+      toast(erroSalvar ? 'Erro ao salvar: ' + erroSalvar.message : 'Dados salvos.', erroSalvar ? 'erro' : 'sucesso');
     });
     container.appendChild(linha);
   });
@@ -399,29 +415,66 @@ async function carregarProfissionaisExternos() {
   profissionais.forEach(prof => {
     const linha = document.createElement('div');
     linha.className = 'linha-perfil-google';
+    linha.style.flexDirection = 'column';
+    linha.style.alignItems = 'stretch';
+    linha.style.gap = '0.6rem';
     linha.innerHTML = `
-      <span class="linha-perfil-google-nome">${prof.nome}</span>
-      <div style="display:flex; gap:0.5rem; align-items:center">
-        <span class="subtitulo" style="margin:0">${prof.whatsapp || 'sem WhatsApp'}</span>
-        <button type="button" class="botao-texto" data-id="${prof.id}">Remover</button>
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:0.6rem">
+        <span class="linha-perfil-google-nome">${prof.nome}</span>
+        <button type="button" class="botao-texto" data-acao="remover" style="margin:0">Remover</button>
       </div>
+      <div class="linha-form">
+        <div class="campo-form"><input type="text" class="campo-whatsapp-externo" placeholder="WhatsApp" value="${prof.whatsapp || ''}"></div>
+      </div>
+      <div class="check-pagamento">
+        <input type="checkbox" class="campo-recorrente-externo" id="recorrente-${prof.id}" ${prof.recorrente ? 'checked' : ''}>
+        <label for="recorrente-${prof.id}">Recorrente</label>
+      </div>
+      <div class="campo-form ${prof.recorrente ? '' : 'oculto'}" data-bloco-pix>
+        <input type="text" class="campo-pix-externo" placeholder="Chave Pix" value="${prof.chave_pix || ''}">
+      </div>
+      <button type="button" class="botao-secundario" data-acao="salvar" style="align-self:flex-start">Salvar</button>
     `;
-    linha.querySelector('button').addEventListener('click', async () => {
+    linha.querySelector('.campo-recorrente-externo').addEventListener('change', (e) => {
+      linha.querySelector('[data-bloco-pix]').classList.toggle('oculto', !e.target.checked);
+    });
+    linha.querySelector('[data-acao="remover"]').addEventListener('click', async () => {
       await supabaseClient.from('profissionais_externos').delete().eq('id', prof.id);
       await carregarProfissionaisExternos();
+    });
+    linha.querySelector('[data-acao="salvar"]').addEventListener('click', async () => {
+      const whatsapp = linha.querySelector('.campo-whatsapp-externo').value.trim();
+      const recorrente = linha.querySelector('.campo-recorrente-externo').checked;
+      const chavePix = linha.querySelector('.campo-pix-externo').value.trim();
+      const { error: erroSalvar } = await supabaseClient.from('profissionais_externos')
+        .update({ whatsapp: whatsapp || null, recorrente, chave_pix: recorrente ? (chavePix || null) : null })
+        .eq('id', prof.id);
+      toast(erroSalvar ? 'Erro ao salvar: ' + erroSalvar.message : 'Dados salvos.', erroSalvar ? 'erro' : 'sucesso');
+      if (!erroSalvar) await carregarProfissionaisExternos();
     });
     container.appendChild(linha);
   });
 }
 
+document.getElementById('novo-profissional-recorrente').addEventListener('change', (e) => {
+  document.getElementById('bloco-novo-profissional-pix').classList.toggle('oculto', !e.target.checked);
+});
+
 document.getElementById('botao-adicionar-profissional-externo').addEventListener('click', async () => {
   const nome = document.getElementById('novo-profissional-nome').value.trim();
   const whatsapp = document.getElementById('novo-profissional-whatsapp').value.trim();
+  const recorrente = document.getElementById('novo-profissional-recorrente').checked;
+  const chavePix = document.getElementById('novo-profissional-pix').value.trim();
   if (!nome) { toast('Digite o nome da profissional.', 'erro'); return; }
-  const { error } = await supabaseClient.from('profissionais_externos').insert({ nome, whatsapp: whatsapp || null });
+  const { error } = await supabaseClient.from('profissionais_externos').insert({
+    nome, whatsapp: whatsapp || null, recorrente, chave_pix: recorrente ? (chavePix || null) : null,
+  });
   if (error) { toast('Erro ao adicionar: ' + error.message, 'erro'); return; }
   document.getElementById('novo-profissional-nome').value = '';
   document.getElementById('novo-profissional-whatsapp').value = '';
+  document.getElementById('novo-profissional-recorrente').checked = false;
+  document.getElementById('novo-profissional-pix').value = '';
+  document.getElementById('bloco-novo-profissional-pix').classList.add('oculto');
   toast('Profissional adicionada.', 'sucesso');
   await carregarProfissionaisExternos();
 });

@@ -801,6 +801,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           </select>
         </div>
 
+        <p class="rotulo-dica oculto" id="dica-pix-profissionais" style="display:block; margin:-0.3rem 0 0.6rem"></p>
         <div class="linha-pagamento-sinal linha-pagamento-editavel">
           <span>Sinal — profissional</span>
           <input type="number" class="campo-valor-destaque" id="evento-valor-sinal-profissional" step="0.01" min="0">
@@ -1158,10 +1159,10 @@ async function carregarClientesEPerfis() {
   const { data: servicos } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
   catalogoServicosAgenda = servicos || [];
 
-  const { data: perfis } = await supabaseClient.from('perfis').select('id, nome, whatsapp');
+  const { data: perfis } = await supabaseClient.from('perfis').select('id, nome, whatsapp, chave_pix');
   perfisCacheAgenda = perfis || [];
 
-  const { data: externos } = await supabaseClient.from('profissionais_externos').select('id, nome, whatsapp').order('nome');
+  const { data: externos } = await supabaseClient.from('profissionais_externos').select('id, nome, whatsapp, chave_pix').order('nome');
   profissionaisExternosCacheAgenda = externos || [];
   renderizarOpcoesResponsavel();
 }
@@ -1302,6 +1303,15 @@ function atualizarBotoesAvisarProfissionais() {
     lista.appendChild(aviso);
   }
   area.classList.toggle('oculto', selecionados.length === 0);
+
+  const dicaPix = document.getElementById('dica-pix-profissionais');
+  const comPix = selecionados.filter(({ perfil }) => perfil && perfil.chave_pix);
+  if (comPix.length) {
+    dicaPix.textContent = '💰 Pix: ' + comPix.map(({ perfil }) => `${perfil.nome} — ${perfil.chave_pix}`).join(' · ');
+    dicaPix.classList.remove('oculto');
+  } else {
+    dicaPix.classList.add('oculto');
+  }
 }
 
 function definirResponsavelEventoNoFormulario(nomesSalvos) {
