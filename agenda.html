@@ -621,6 +621,22 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
 /* clientes adicionais no mesmo atendimento (grupo) */
 .secao-grupo { margin-top: 1rem; }
+
+.resumo-financeiro {
+  margin-top: 1.1rem; padding: 0.9rem 1rem; border-radius: var(--radius-sm);
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.resumo-financeiro-linha {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 0.85rem; color: var(--ink); margin-bottom: 0.4rem; gap: 0.8rem;
+}
+.resumo-financeiro-linha .mono { font-family: 'DM Mono', monospace; font-weight: 600; flex-shrink: 0; }
+.resumo-financeiro-status {
+  font-size: 0.82rem; font-weight: 600; padding-top: 0.5rem; margin-top: 0.3rem;
+  border-top: 1px solid var(--border);
+}
+.resumo-financeiro-status.bate { color: var(--teal-deep); }
+.resumo-financeiro-status.nao-bate { color: var(--red); }
 .linha-participante-grupo {
   background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
   padding: 0.8rem 0.9rem 0.3rem; margin-bottom: 0.7rem; position: relative;
@@ -863,6 +879,18 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <p class="subtitulo" style="margin:0 0 0.8rem">Pra grupos — cada cliente com seu próprio valor.</p>
         <div id="lista-participantes-grupo"></div>
         <button type="button" class="botao-texto" id="botao-adicionar-participante">+ Adicionar cliente ao grupo</button>
+      </div>
+
+      <div class="resumo-financeiro" id="resumo-financeiro">
+        <div class="resumo-financeiro-linha">
+          <span>Valor total do atendimento</span>
+          <span class="mono" id="resumo-total">R$ 0.00</span>
+        </div>
+        <div class="resumo-financeiro-linha">
+          <span>Soma de tudo que foi lançado <span class="rotulo-dica">(sinal negócio + sinal profissional + saldo, de todo mundo)</span></span>
+          <span class="mono" id="resumo-soma">R$ 0.00</span>
+        </div>
+        <div class="resumo-financeiro-status" id="resumo-status"></div>
       </div>
 
       <div class="modal-rodape">
@@ -1623,18 +1651,62 @@ function calcularSinal() {
 
   if (!sinalEditadoManualmente) document.getElementById('evento-valor-sinal').value = (total * 0.2).toFixed(2);
   recalcularSaldoAutomatico();
+  atualizarResumoFinanceiro();
   return parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
 document.getElementById('evento-valor-sinal').addEventListener('input', () => {
   sinalEditadoManualmente = true;
   recalcularSaldoAutomatico();
+  atualizarResumoFinanceiro();
 });
 document.getElementById('evento-valor-sinal-profissional').addEventListener('input', () => {
   sinalProfissionalEditadoManualmente = true;
   recalcularSaldoAutomatico();
+  atualizarResumoFinanceiro();
 });
-document.getElementById('evento-valor-saldo').addEventListener('input', () => { saldoEditadoManualmente = true; });
+document.getElementById('evento-valor-saldo').addEventListener('input', () => {
+  saldoEditadoManualmente = true;
+  atualizarResumoFinanceiro();
+});
+
+// ---- RESUMO FINANCEIRO (confirmação visível de que a soma bate) ----
+// Soma o que foi lançado para a cliente principal + cada participante do
+// grupo e compara com o valor total do atendimento (serviços - desconto),
+// para deixar claro, na tela, se os valores lançados fecham com o total.
+function atualizarResumoFinanceiro() {
+  const painel = document.getElementById('resumo-financeiro');
+  if (!painel) return;
+
+  const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
+
+  const sinalPrincipal = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
+  const sinalProfPrincipal = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
+  const saldoPrincipal = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
+  let soma = sinalPrincipal + sinalProfPrincipal + saldoPrincipal;
+
+  document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo').forEach((linha) => {
+    soma += parseFloat(linha.querySelector('.participante-valor-sinal').value) || 0;
+    soma += parseFloat(linha.querySelector('.participante-valor-sinal-profissional').value) || 0;
+    soma += parseFloat(linha.querySelector('.participante-valor-saldo').value) || 0;
+  });
+
+  document.getElementById('resumo-total').textContent = `R$ ${total.toFixed(2)}`;
+  document.getElementById('resumo-soma').textContent = `R$ ${soma.toFixed(2)}`;
+
+  const diferenca = soma - total;
+  const statusEl = document.getElementById('resumo-status');
+  if (Math.abs(diferenca) < 0.01) {
+    statusEl.className = 'resumo-financeiro-status bate';
+    statusEl.textContent = '✓ Os valores lançados batem com o total do atendimento.';
+  } else if (diferenca > 0) {
+    statusEl.className = 'resumo-financeiro-status nao-bate';
+    statusEl.textContent = `✗ Falta ajustar: foi lançado R$ ${diferenca.toFixed(2)} a mais do que o total do atendimento.`;
+  } else {
+    statusEl.className = 'resumo-financeiro-status nao-bate';
+    statusEl.textContent = `✗ Falta ajustar: ainda falta lançar R$ ${Math.abs(diferenca).toFixed(2)} para fechar com o total do atendimento.`;
+  }
+}
 
 document.getElementById('evento-sinal-pago').addEventListener('change', (e) => {
   document.getElementById('campo-sinal-metodo').classList.toggle('oculto', !e.target.checked);
@@ -1743,13 +1815,20 @@ function criarLinhaParticipante(participante) {
   checkSinalPago.addEventListener('change', () => sinalMetodoWrap.classList.toggle('oculto', !checkSinalPago.checked));
   checkSinalProfissionalPago.addEventListener('change', () => sinalProfissionalMetodoWrap.classList.toggle('oculto', !checkSinalProfissionalPago.checked));
   checkSaldoPago.addEventListener('change', () => saldoMetodoWrap.classList.toggle('oculto', !checkSaldoPago.checked));
-  div.querySelector('.botao-remover-participante').addEventListener('click', () => div.remove());
+  div.querySelector('.participante-valor-sinal').addEventListener('input', atualizarResumoFinanceiro);
+  div.querySelector('.participante-valor-sinal-profissional').addEventListener('input', atualizarResumoFinanceiro);
+  div.querySelector('.participante-valor-saldo').addEventListener('input', atualizarResumoFinanceiro);
+  div.querySelector('.botao-remover-participante').addEventListener('click', () => {
+    div.remove();
+    atualizarResumoFinanceiro();
+  });
 
   return div;
 }
 
 document.getElementById('botao-adicionar-participante').addEventListener('click', () => {
   document.getElementById('lista-participantes-grupo').appendChild(criarLinhaParticipante(null));
+  atualizarResumoFinanceiro();
 });
 
 async function abrirModalEvento(modo, evento, diaClicado) {
@@ -1836,6 +1915,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
       .from('evento_participantes').select('*').eq('evento_id', evento.id);
     const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
     (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
+    atualizarResumoFinanceiro();
 
     atualizarBotaoWhatsappCliente();
   }
