@@ -303,6 +303,12 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 #botao-excluir-evento { color: var(--red); margin-top: 0; }
 .botao-whatsapp { color: #25925A; margin-top: 0; margin-left: auto; margin-right: 1.1rem; font-weight: 600; }
 .botao-whatsapp:hover { color: #1B7245; }
+.botao-avisar-profissional {
+  padding: 0.5rem 0.9rem; border: 1px solid #CDE8D9; border-radius: var(--radius-sm);
+  background: #EAF7EF; color: #1B7245; font-weight: 600; font-size: 0.8rem; cursor: pointer;
+  transition: background var(--transition);
+}
+.botao-avisar-profissional:hover { background: #DBF1E3; }
 
 /* ============================================================
    TOAST
@@ -811,6 +817,11 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <button type="button" class="botao-texto" id="botao-adicionar-participante">+ Adicionar cliente ao grupo</button>
       </div>
 
+      <div class="oculto" id="area-avisar-profissionais">
+        <label>Avisar quem vai atender</label>
+        <div id="lista-avisar-profissionais" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.3rem"></div>
+      </div>
+
       <div class="modal-rodape">
         <button type="button" class="botao-texto" id="botao-excluir-evento">Excluir</button>
         <button type="button" class="botao-texto botao-whatsapp oculto" id="botao-whatsapp-evento">💬 WhatsApp</button>
@@ -969,11 +980,20 @@ function obterChavePix() {
   return chave || '';
 }
 
+function listaServicosSelecionados() {
+  return catalogoServicosAgenda
+    .filter(s => (quantidadesServicoEvento[s.id] || 0) > 0)
+    .map(s => quantidadesServicoEvento[s.id] > 1 ? `${s.nome} x${quantidadesServicoEvento[s.id]}` : s.nome);
+}
+
 function mensagemConfirmacaoEvento(evento, cliente) {
   const nome = cliente ? cliente.nome_noiva : '';
   const dataFmt = new Date(`${evento.data}T00:00:00`).toLocaleDateString('pt-BR');
   const local = evento.local ? ` em ${evento.local}` : '';
   let msg = `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Confirmando seu horário: ${dataFmt} às ${evento.horaInicio}${local}.`;
+  if (evento.servicos && evento.servicos.length) {
+    msg += ` Serviços: ${evento.servicos.join(', ')}.`;
+  }
   if (evento.valorSinal > 0 && !evento.sinalPago) {
     const chavePix = obterChavePix();
     msg += ` Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix`;
@@ -1090,6 +1110,9 @@ async function carregarClientesEPerfis() {
 
   const { data: servicos } = await supabaseClient.from('servicos').select('*').eq('ativo', true).order('nome');
   catalogoServicosAgenda = servicos || [];
+
+  const { data: perfis } = await supabaseClient.from('perfis').select('id, nome, whatsapp');
+  perfisCacheAgenda = perfis || [];
 }
 
 function renderizarChecklistServicosEvento() {
@@ -1158,10 +1181,57 @@ function configurarSeletorResponsavelEvento() {
       botao.classList.toggle('selecionado');
       if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
       else responsaveisEventoSelecionados.delete(valor);
+      atualizarBotoesAvisarProfissionais();
     });
   });
 }
 configurarSeletorResponsavelEvento();
+
+// ---- AVISAR PROFISSIONAIS — WhatsApp com endereço/cliente/serviços ----
+function mensagemAvisoProfissional(nomeProfissional) {
+  const clienteSelecionado = document.getElementById('evento-cliente').value;
+  let nomeCliente = '';
+  if (clienteSelecionado === '__novo__') {
+    nomeCliente = document.getElementById('nova-cliente-nome').value.trim() || '(nova cliente)';
+  } else {
+    const cliente = clientesCacheAgenda.find(c => c.id === clienteSelecionado);
+    nomeCliente = cliente ? cliente.nome_noiva : '';
+  }
+  const titulo = document.getElementById('evento-titulo').value.trim();
+  const data = document.getElementById('evento-data').value;
+  const horaInicio = document.getElementById('evento-hora-inicio').value;
+  const local = document.getElementById('evento-local').value.trim();
+  const observacoes = document.getElementById('evento-observacoes').value.trim();
+  const servicos = listaServicosSelecionados();
+  const dataFmt = data ? new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR') : '';
+
+  let msg = `Oi, ${nomeProfissional}! Lembrete de atendimento${titulo ? ` (${titulo})` : ''}: ${dataFmt}${horaInicio ? ` às ${horaInicio}` : ''}`;
+  if (nomeCliente) msg += `, cliente ${nomeCliente}`;
+  if (local) msg += `, em ${local}`;
+  msg += '.';
+  if (servicos.length) msg += ` Serviços: ${servicos.join(', ')}.`;
+  if (observacoes) msg += ` Obs: ${observacoes}.`;
+  return msg;
+}
+
+function atualizarBotoesAvisarProfissionais() {
+  const area = document.getElementById('area-avisar-profissionais');
+  const lista = document.getElementById('lista-avisar-profissionais');
+  const comWhats = Array.from(responsaveisEventoSelecionados)
+    .map(nome => perfisCacheAgenda.find(p => p.nome === nome))
+    .filter(perfil => perfil && perfil.whatsapp);
+
+  lista.innerHTML = '';
+  comWhats.forEach(perfil => {
+    const botao = document.createElement('button');
+    botao.type = 'button';
+    botao.className = 'botao-avisar-profissional';
+    botao.textContent = `📋 Avisar ${perfil.nome}`;
+    botao.addEventListener('click', () => abrirWhatsapp(perfil.whatsapp, mensagemAvisoProfissional(perfil.nome)));
+    lista.appendChild(botao);
+  });
+  area.classList.toggle('oculto', comWhats.length === 0);
+}
 
 function definirResponsavelEventoNoFormulario(nomesSalvos) {
   document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
@@ -1523,6 +1593,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-hora-inicio').value = '10:00';
     document.getElementById('evento-hora-fim').value = '';
     definirResponsavelEventoNoFormulario([]);
+    atualizarBotoesAvisarProfissionais();
     quantidadesServicoEvento = {};
     document.getElementById('evento-desconto').value = '';
     renderizarChecklistServicosEvento();
@@ -1543,6 +1614,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-local').value = evento.local || '';
     document.getElementById('evento-observacoes').value = evento.observacoes || '';
     definirResponsavelEventoNoFormulario(nomesResponsaveisEvento(evento));
+    atualizarBotoesAvisarProfissionais();
 
     quantidadesServicoEvento = {};
     document.getElementById('evento-desconto').value = evento.desconto || '';
@@ -1587,6 +1659,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
         valorTotal,
         valorSinal: parseFloat(document.getElementById('evento-valor-sinal').value) || 0,
         sinalPago: document.getElementById('evento-sinal-pago').checked,
+        servicos: listaServicosSelecionados(),
       };
       abrirWhatsapp(clienteDoEvento.whatsapp, mensagemConfirmacaoEvento(dadosMsg, clienteDoEvento));
     };

@@ -195,6 +195,14 @@ h1, h2, h3 {
   </div>
 
   <div class="cartao-integracao">
+    <div class="cartao-integracao-topo"><h2>WhatsApp das profissionais</h2></div>
+    <p class="desc">Usado pelo botão "Avisar" na Agenda, que manda o endereço, a cliente e os serviços do atendimento direto pro WhatsApp de quem vai atender.</p>
+    <div id="lista-perfis-whatsapp">
+      <p class="subtitulo" style="margin:0">Carregando perfis...</p>
+    </div>
+  </div>
+
+  <div class="cartao-integracao">
     <div class="cartao-integracao-topo"><h2>Notificações</h2></div>
     <p class="desc">Receba um aviso quando um novo compromisso for agendado, quando o status de uma cliente mudar, e um lembrete no dia anterior a cada atendimento.</p>
     <button type="button" class="botao-principal" id="botao-ativar-notificacoes">Ativar notificações neste dispositivo</button>
@@ -329,6 +337,35 @@ if (paramsUrl.get('google') === 'ok') toast('Google Calendar conectado!', 'suces
 if (paramsUrl.get('google') === 'erro') toast('Não foi possível conectar o Google Calendar.', 'erro');
 
 // ============================================================
+// WHATSAPP DAS PROFISSIONAIS
+// ============================================================
+
+async function carregarPerfisWhatsapp() {
+  const container = document.getElementById('lista-perfis-whatsapp');
+  const { data: perfis, error } = await supabaseClient.from('perfis').select('id, nome, whatsapp');
+  if (error) { container.innerHTML = `<p class="erro">Erro ao carregar perfis: ${error.message}</p>`; return; }
+
+  container.innerHTML = '';
+  perfis.forEach(perfil => {
+    const linha = document.createElement('div');
+    linha.className = 'linha-perfil-google';
+    linha.innerHTML = `
+      <span class="linha-perfil-google-nome">${perfil.nome}</span>
+      <div style="display:flex; gap:0.5rem; align-items:center">
+        <input type="text" class="campo-whatsapp-perfil" placeholder="+55 31 9...." value="${perfil.whatsapp || ''}" style="width:150px">
+        <button type="button" class="botao-secundario" data-perfil="${perfil.id}">Salvar</button>
+      </div>
+    `;
+    linha.querySelector('button').addEventListener('click', async (e) => {
+      const numero = linha.querySelector('.campo-whatsapp-perfil').value.trim();
+      const { error: erroSalvar } = await supabaseClient.from('perfis').update({ whatsapp: numero || null }).eq('id', perfil.id);
+      toast(erroSalvar ? 'Erro ao salvar: ' + erroSalvar.message : 'WhatsApp salvo.', erroSalvar ? 'erro' : 'sucesso');
+    });
+    container.appendChild(linha);
+  });
+}
+
+// ============================================================
 // NOTIFICAÇÕES PUSH
 // Preencha VAPID_PUBLIC_KEY com a chave pública gerada (a privada
 // fica só na Edge Function, nunca aqui).
@@ -402,6 +439,7 @@ document.getElementById('botao-ativar-notificacoes').addEventListener('click', a
   const ok = await protegerRota();
   if (!ok) return;
   await carregarPerfisGoogle();
+  await carregarPerfisWhatsapp();
   await atualizarStatusNotificacoes();
 })();
 
