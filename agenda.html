@@ -622,6 +622,28 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 /* clientes adicionais no mesmo atendimento (grupo) */
 .secao-grupo { margin-top: 1rem; }
 
+.secao-divisao-profissionais {
+  margin-top: 1.1rem; padding: 0.9rem 1rem; border-radius: var(--radius-sm);
+  background: var(--gold-dim); border: 1px solid var(--border);
+}
+.linha-divisao-profissional {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.8rem;
+  padding: 0.4rem 0; border-bottom: 1px solid var(--border);
+}
+.linha-divisao-profissional:last-of-type { border-bottom: none; }
+.linha-divisao-profissional .nome-divisao { font-size: 0.85rem; font-weight: 500; color: var(--ink); }
+.input-divisao-profissional {
+  width: 110px; flex-shrink: 0; text-align: right;
+  font-family: 'DM Mono', monospace; font-weight: 600;
+}
+#botao-dividir-igualmente-profissionais { margin-top: 0.6rem; }
+.divisao-profissionais-status {
+  font-size: 0.82rem; font-weight: 600; padding-top: 0.5rem; margin-top: 0.6rem;
+  border-top: 1px solid var(--border);
+}
+.divisao-profissionais-status.bate { color: var(--teal-deep); }
+.divisao-profissionais-status.nao-bate { color: var(--red); }
+
 .resumo-financeiro {
   margin-top: 1.1rem; padding: 0.9rem 1rem; border-radius: var(--radius-sm);
   background: var(--surface2); border: 1px solid var(--border);
@@ -879,6 +901,14 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <p class="subtitulo" style="margin:0 0 0.8rem">Pra grupos — cada cliente com seu próprio valor.</p>
         <div id="lista-participantes-grupo"></div>
         <button type="button" class="botao-texto" id="botao-adicionar-participante">+ Adicionar cliente ao grupo</button>
+      </div>
+
+      <div class="secao-divisao-profissionais oculto" id="secao-divisao-profissionais">
+        <div class="secao-pagamento-titulo">Divisão entre profissionais <span class="rotulo-dica">(sinal profissional + saldo, de todo mundo)</span></div>
+        <p class="subtitulo" style="margin:0 0 0.8rem">Por padrão divide igual — ajuste se uma profissional fez mais do que a outra.</p>
+        <div id="lista-divisao-profissionais"></div>
+        <button type="button" class="botao-texto" id="botao-dividir-igualmente-profissionais">↺ Dividir tudo igualmente</button>
+        <div class="divisao-profissionais-status" id="divisao-profissionais-status"></div>
       </div>
 
       <div class="resumo-financeiro" id="resumo-financeiro">
@@ -1297,13 +1327,17 @@ document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
     botao.classList.toggle('selecionado', ativar);
     campoOutra.classList.toggle('oculto', !ativar);
     if (ativar) campoOutra.focus(); else campoOutra.value = '';
+    renderizarDivisaoProfissionais();
     return;
   }
   botao.classList.toggle('selecionado');
   if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
   else responsaveisEventoSelecionados.delete(valor);
   atualizarBotoesAvisarProfissionais();
+  renderizarDivisaoProfissionais();
 });
+
+document.getElementById('evento-responsavel-outra').addEventListener('input', renderizarDivisaoProfissionais);
 
 // Cria uma profissional externa na hora (nome + WhatsApp), sem precisar
 // ir até Integrações antes, e já marca ela como responsável.
@@ -1327,6 +1361,7 @@ document.getElementById('botao-salvar-nova-profissional').addEventListener('clic
   document.getElementById('nova-profissional-whatsapp').value = '';
   document.getElementById('bloco-nova-profissional-rapida').classList.add('oculto');
   atualizarBotoesAvisarProfissionais();
+  renderizarDivisaoProfissionais();
   toast(`${nome} adicionada à equipe.`, 'sucesso');
 });
 
@@ -1652,6 +1687,7 @@ function calcularSinal() {
   if (!sinalEditadoManualmente) document.getElementById('evento-valor-sinal').value = (total * 0.2).toFixed(2);
   recalcularSaldoAutomatico();
   atualizarResumoFinanceiro();
+  atualizarStatusDivisaoProfissionais();
   return parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
@@ -1659,15 +1695,18 @@ document.getElementById('evento-valor-sinal').addEventListener('input', () => {
   sinalEditadoManualmente = true;
   recalcularSaldoAutomatico();
   atualizarResumoFinanceiro();
+  atualizarStatusDivisaoProfissionais();
 });
 document.getElementById('evento-valor-sinal-profissional').addEventListener('input', () => {
   sinalProfissionalEditadoManualmente = true;
   recalcularSaldoAutomatico();
   atualizarResumoFinanceiro();
+  atualizarStatusDivisaoProfissionais();
 });
 document.getElementById('evento-valor-saldo').addEventListener('input', () => {
   saldoEditadoManualmente = true;
   atualizarResumoFinanceiro();
+  atualizarStatusDivisaoProfissionais();
 });
 
 // ---- RESUMO FINANCEIRO (confirmação visível de que a soma bate) ----
@@ -1706,6 +1745,108 @@ function atualizarResumoFinanceiro() {
     statusEl.className = 'resumo-financeiro-status nao-bate';
     statusEl.textContent = `✗ Falta ajustar: ainda falta lançar R$ ${Math.abs(diferenca).toFixed(2)} para fechar com o total do atendimento.`;
   }
+}
+
+// ---- DIVISÃO DO VALOR ENTRE PROFISSIONAIS ----
+// Quando mais de uma profissional está marcada como responsável, o que
+// cabe a cada uma (sinal-profissional + saldo, de todo mundo) nem sempre
+// é 50/50 — uma pode ter feito mais trabalho do que a outra. Por padrão
+// divide igual; a profissional marcando o compromisso pode ajustar à
+// mão, com confirmação visível de que a divisão bate com o total.
+let valoresDivisaoProfissionais = {};
+
+function calcularPotProfissionalTotal() {
+  const sinalProfPrincipal = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
+  const saldoPrincipal = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
+  let pot = sinalProfPrincipal + saldoPrincipal;
+  document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo').forEach((linha) => {
+    pot += parseFloat(linha.querySelector('.participante-valor-sinal-profissional').value) || 0;
+    pot += parseFloat(linha.querySelector('.participante-valor-saldo').value) || 0;
+  });
+  return pot;
+}
+
+function renderizarDivisaoProfissionais() {
+  const secao = document.getElementById('secao-divisao-profissionais');
+  const nomes = obterNomesResponsaveisEventoFinal();
+
+  if (nomes.length < 2) {
+    secao.classList.add('oculto');
+    return;
+  }
+  secao.classList.remove('oculto');
+
+  Object.keys(valoresDivisaoProfissionais).forEach(nome => {
+    if (!nomes.includes(nome)) delete valoresDivisaoProfissionais[nome];
+  });
+  const semValorAinda = nomes.filter(nome => valoresDivisaoProfissionais[nome] === undefined);
+  if (semValorAinda.length) {
+    const pot = calcularPotProfissionalTotal();
+    const parte = pot / nomes.length;
+    semValorAinda.forEach(nome => { valoresDivisaoProfissionais[nome] = parte; });
+  }
+
+  const lista = document.getElementById('lista-divisao-profissionais');
+  lista.innerHTML = nomes.map(nome => `
+    <div class="linha-divisao-profissional">
+      <span class="nome-divisao">${escaparHtmlAgenda(apelido(nome))}</span>
+      <input type="number" class="input-divisao-profissional" step="0.01" min="0" data-nome="${escaparHtmlAgenda(nome)}" value="${(valoresDivisaoProfissionais[nome] || 0).toFixed(2)}">
+    </div>`).join('');
+
+  lista.querySelectorAll('.input-divisao-profissional').forEach(input => {
+    input.addEventListener('input', () => {
+      valoresDivisaoProfissionais[input.dataset.nome] = parseFloat(input.value) || 0;
+      atualizarStatusDivisaoProfissionais();
+    });
+  });
+
+  atualizarStatusDivisaoProfissionais();
+}
+
+function atualizarStatusDivisaoProfissionais() {
+  const statusEl = document.getElementById('divisao-profissionais-status');
+  if (!statusEl) return;
+  const pot = calcularPotProfissionalTotal();
+  const soma = Object.values(valoresDivisaoProfissionais).reduce((total, v) => total + (Number(v) || 0), 0);
+  const diferenca = soma - pot;
+
+  if (Math.abs(diferenca) < 0.01) {
+    statusEl.className = 'divisao-profissionais-status bate';
+    statusEl.textContent = `✓ Divisão bate com o total das profissionais (R$ ${pot.toFixed(2)}).`;
+  } else if (diferenca > 0) {
+    statusEl.className = 'divisao-profissionais-status nao-bate';
+    statusEl.textContent = `✗ A divisão está R$ ${diferenca.toFixed(2)} acima do total das profissionais (R$ ${pot.toFixed(2)}).`;
+  } else {
+    statusEl.className = 'divisao-profissionais-status nao-bate';
+    statusEl.textContent = `✗ Falta R$ ${Math.abs(diferenca).toFixed(2)} para fechar com o total das profissionais (R$ ${pot.toFixed(2)}).`;
+  }
+}
+
+document.getElementById('botao-dividir-igualmente-profissionais').addEventListener('click', () => {
+  valoresDivisaoProfissionais = {};
+  renderizarDivisaoProfissionais();
+});
+
+// Grava quanto cada responsável leva deste compromisso (substitui o que
+// já existia). Com uma só responsável, ela leva o total — guardamos
+// mesmo assim pra não precisar de um caso especial lá no financeiro.
+async function salvarDivisaoProfissionais(eventoId, nomes) {
+  await supabaseClient.from('evento_profissionais_valores').delete().eq('evento_id', eventoId);
+  if (!nomes.length) return;
+
+  let linhas;
+  if (nomes.length === 1) {
+    linhas = [{ evento_id: eventoId, profissional_nome: nomes[0], valor: calcularPotProfissionalTotal() }];
+  } else {
+    const pot = calcularPotProfissionalTotal();
+    const parteIgual = pot / nomes.length;
+    linhas = nomes.map(nome => ({
+      evento_id: eventoId,
+      profissional_nome: nome,
+      valor: valoresDivisaoProfissionais[nome] !== undefined ? valoresDivisaoProfissionais[nome] : parteIgual,
+    }));
+  }
+  await supabaseClient.from('evento_profissionais_valores').insert(linhas);
 }
 
 document.getElementById('evento-sinal-pago').addEventListener('change', (e) => {
@@ -1816,11 +1957,18 @@ function criarLinhaParticipante(participante) {
   checkSinalProfissionalPago.addEventListener('change', () => sinalProfissionalMetodoWrap.classList.toggle('oculto', !checkSinalProfissionalPago.checked));
   checkSaldoPago.addEventListener('change', () => saldoMetodoWrap.classList.toggle('oculto', !checkSaldoPago.checked));
   div.querySelector('.participante-valor-sinal').addEventListener('input', atualizarResumoFinanceiro);
-  div.querySelector('.participante-valor-sinal-profissional').addEventListener('input', atualizarResumoFinanceiro);
-  div.querySelector('.participante-valor-saldo').addEventListener('input', atualizarResumoFinanceiro);
+  div.querySelector('.participante-valor-sinal-profissional').addEventListener('input', () => {
+    atualizarResumoFinanceiro();
+    atualizarStatusDivisaoProfissionais();
+  });
+  div.querySelector('.participante-valor-saldo').addEventListener('input', () => {
+    atualizarResumoFinanceiro();
+    atualizarStatusDivisaoProfissionais();
+  });
   div.querySelector('.botao-remover-participante').addEventListener('click', () => {
     div.remove();
     atualizarResumoFinanceiro();
+    atualizarStatusDivisaoProfissionais();
   });
 
   return div;
@@ -1829,6 +1977,7 @@ function criarLinhaParticipante(participante) {
 document.getElementById('botao-adicionar-participante').addEventListener('click', () => {
   document.getElementById('lista-participantes-grupo').appendChild(criarLinhaParticipante(null));
   atualizarResumoFinanceiro();
+  atualizarStatusDivisaoProfissionais();
 });
 
 async function abrirModalEvento(modo, evento, diaClicado) {
@@ -1846,6 +1995,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   sinalEditadoManualmente = false;
   sinalProfissionalEditadoManualmente = false;
   saldoEditadoManualmente = false;
+  valoresDivisaoProfissionais = {};
   eventoEmEdicao = evento;
 
   if (modo === 'novo') {
@@ -1862,6 +2012,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-desconto').value = '';
     renderizarChecklistServicosEvento();
     calcularSinal();
+    renderizarDivisaoProfissionais();
   } else {
     document.getElementById('modal-evento-titulo').textContent = 'Editar compromisso';
     document.getElementById('botao-excluir-evento').classList.remove('oculto');
@@ -1916,6 +2067,12 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
     (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
     atualizarResumoFinanceiro();
+
+    const { data: divisaoExistente } = await supabaseClient
+      .from('evento_profissionais_valores').select('*').eq('evento_id', evento.id);
+    valoresDivisaoProfissionais = {};
+    (divisaoExistente || []).forEach(d => { valoresDivisaoProfissionais[d.profissional_nome] = Number(d.valor) || 0; });
+    renderizarDivisaoProfissionais();
 
     atualizarBotaoWhatsappCliente();
   }
@@ -2051,6 +2208,8 @@ formEvento.addEventListener('submit', async (e) => {
     if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorSaldo, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'saldo_final');
   }
+
+  if (eventoId) await salvarDivisaoProfissionais(eventoId, responsaveisNomes);
 
   if (eventoId) await salvarParticipantesGrupo(eventoId, perfil);
 

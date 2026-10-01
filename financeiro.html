@@ -950,6 +950,20 @@ async function carregarProjecaoMes() {
     (participantesPorEvento[p.evento_id] = participantesPorEvento[p.evento_id] || []).push(p);
   });
 
+  // Divisão que foi lançada na agenda pra cada compromisso (quando mais
+  // de uma profissional atende, nem sempre é 50/50 — uma pode ter feito
+  // mais do que a outra). Compromissos antigos, de antes dessa divisão
+  // existir, caem no fallback de divisão igual logo abaixo.
+  const { data: divisoesSalvas } = await supabaseClient
+    .from('evento_profissionais_valores')
+    .select('evento_id, profissional_nome, valor')
+    .in('evento_id', eventos.map(e => e.id));
+
+  const divisaoPorEvento = {};
+  (divisoesSalvas || []).forEach(d => {
+    (divisaoPorEvento[d.evento_id] = divisaoPorEvento[d.evento_id] || {})[d.profissional_nome] = Number(d.valor) || 0;
+  });
+
   const porProfissional = {};
   eventos.forEach(ev => {
     const responsaveis = (ev.responsaveis && ev.responsaveis.length) ? ev.responsaveis : ['Sem profissional definida'];
@@ -962,10 +976,12 @@ async function carregarProjecaoMes() {
       potEvento += (Number(p.valor_sinal_profissional) || 0) + (Number(p.valor_saldo) || 0);
     });
 
-    const porPessoa = potEvento / responsaveis.length;
+    const divisaoEvento = divisaoPorEvento[ev.id];
+    const porPessoaFallback = potEvento / responsaveis.length;
     responsaveis.forEach(nome => {
       if (!porProfissional[nome]) porProfissional[nome] = { valor: 0, qtd: 0 };
-      porProfissional[nome].valor += porPessoa;
+      const valorDaPessoa = (divisaoEvento && divisaoEvento[nome] !== undefined) ? divisaoEvento[nome] : porPessoaFallback;
+      porProfissional[nome].valor += valorDaPessoa;
       porProfissional[nome].qtd += 1;
     });
   });
