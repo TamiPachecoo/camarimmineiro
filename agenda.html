@@ -302,6 +302,12 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 #botao-excluir-cliente { color: var(--red); margin-top: 0; }
 #botao-excluir-evento { color: var(--red); margin-top: 0; }
 .botao-whatsapp { color: #25925A; margin-top: 0; margin-left: auto; margin-right: 1.1rem; font-weight: 600; }
+.botao-whatsapp-inline {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 50%;
+  border: 1px solid #CDE8D9; background: #EAF7EF; color: #1B7245; font-size: 1rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: background var(--transition);
+}
+.botao-whatsapp-inline:hover { background: #DBF1E3; }
 .botao-whatsapp:hover { color: #1B7245; }
 .botao-avisar-profissional {
   padding: 0.5rem 0.9rem; border: 1px solid #CDE8D9; border-radius: var(--radius-sm);
@@ -705,7 +711,10 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         </div>
         <div class="campo-form">
           <label for="evento-cliente">Cliente</label>
-          <select id="evento-cliente"><option value="">Nenhum</option></select>
+          <div style="display:flex; gap:0.4rem; align-items:center">
+            <select id="evento-cliente" style="flex:1"><option value="">Nenhum</option></select>
+            <button type="button" class="botao-whatsapp-inline oculto" id="botao-whatsapp-cliente-inline" title="Mandar WhatsApp pra cliente">💬</button>
+          </div>
         </div>
       </div>
 
@@ -746,12 +755,11 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
 
       <label>Responsáveis <span class="rotulo-dica">(pode marcar mais de uma)</span></label>
-      <div class="opcoes-responsavel">
-        <div class="opcao-responsavel" data-valor="Tami">Tami</div>
-        <div class="opcao-responsavel" data-valor="Stefania">Stefania</div>
-        <div class="opcao-responsavel" data-valor="Outra">Outra(s)</div>
-      </div>
+      <div class="opcoes-responsavel" id="opcoes-responsavel"></div>
       <input type="text" id="evento-responsavel-outra" placeholder="Outros nomes, separados por vírgula" class="oculto" style="margin-top:0.5rem">
+      <div class="oculto" id="area-avisar-profissionais">
+        <div id="lista-avisar-profissionais" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.6rem"></div>
+      </div>
 
       <label for="evento-observacoes">Observações</label>
       <textarea id="evento-observacoes" rows="3"></textarea>
@@ -817,14 +825,8 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <button type="button" class="botao-texto" id="botao-adicionar-participante">+ Adicionar cliente ao grupo</button>
       </div>
 
-      <div class="oculto" id="area-avisar-profissionais">
-        <label>Avisar quem vai atender</label>
-        <div id="lista-avisar-profissionais" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.3rem"></div>
-      </div>
-
       <div class="modal-rodape">
         <button type="button" class="botao-texto" id="botao-excluir-evento">Excluir</button>
-        <button type="button" class="botao-texto botao-whatsapp oculto" id="botao-whatsapp-evento">💬 WhatsApp</button>
         <button type="submit" class="botao-principal">Salvar</button>
       </div>
       <p class="erro" id="erro-evento"></p>
@@ -1007,6 +1009,32 @@ function mensagemConfirmacaoEvento(evento, cliente) {
   return msg;
 }
 
+// Mostra/esconde o botão de WhatsApp ao lado do campo Cliente, de acordo
+// com a cliente selecionada no momento (reage à troca no <select> também,
+// não só quando o evento é carregado pra edição).
+function atualizarBotaoWhatsappCliente() {
+  const botaoWhats = document.getElementById('botao-whatsapp-cliente-inline');
+  const clienteId = document.getElementById('evento-cliente').value;
+  const cliente = clientesCacheAgenda.find(c => c.id === clienteId);
+  botaoWhats.classList.toggle('oculto', !(cliente && cliente.whatsapp));
+  if (!cliente || !cliente.whatsapp) return;
+  botaoWhats.onclick = () => {
+    const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
+    const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
+    const valorTotal = Math.max(0, subtotal - desconto);
+    const dadosMsg = {
+      data: document.getElementById('evento-data').value,
+      horaInicio: document.getElementById('evento-hora-inicio').value,
+      local: document.getElementById('evento-local').value.trim(),
+      valorTotal,
+      valorSinal: parseFloat(document.getElementById('evento-valor-sinal').value) || 0,
+      sinalPago: document.getElementById('evento-sinal-pago').checked,
+      servicos: listaServicosSelecionados(),
+    };
+    abrirWhatsapp(cliente.whatsapp, mensagemConfirmacaoEvento(dadosMsg, cliente));
+  };
+}
+
 // ============================================================
 // DISPONIBILIDADE — cruza a agenda interna com o Google Calendar
 // de cada perfil conectado (freebusy), para checar um novo pedido
@@ -1082,6 +1110,7 @@ mesAtual.setDate(1);
 let eventosCache = [];
 let clientesCacheAgenda = [];
 let perfisCacheAgenda = [];
+let profissionaisExternosCacheAgenda = [];
 
 function chaveData(d) {
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
@@ -1113,6 +1142,18 @@ async function carregarClientesEPerfis() {
 
   const { data: perfis } = await supabaseClient.from('perfis').select('id, nome, whatsapp');
   perfisCacheAgenda = perfis || [];
+
+  const { data: externos } = await supabaseClient.from('profissionais_externos').select('id, nome, whatsapp').order('nome');
+  profissionaisExternosCacheAgenda = externos || [];
+  renderizarOpcoesResponsavel();
+}
+
+function renderizarOpcoesResponsavel() {
+  const container = document.getElementById('opcoes-responsavel');
+  const nomesExtras = profissionaisExternosCacheAgenda.map(p => p.nome);
+  const opcoes = ['Tami', 'Stefania', ...nomesExtras];
+  container.innerHTML = opcoes.map(nome => `<div class="opcao-responsavel" data-valor="${escaparHtmlAgenda(nome)}">${escaparHtmlAgenda(nome)}</div>`).join('')
+    + `<div class="opcao-responsavel" data-valor="Outra">Outra(s)</div>`;
 }
 
 function renderizarChecklistServicosEvento() {
@@ -1152,6 +1193,7 @@ function renderizarChecklistServicosEvento() {
 document.getElementById('evento-cliente').addEventListener('change', (e) => {
   const blocoNovaCliente = document.getElementById('bloco-nova-cliente-rapida');
   blocoNovaCliente.classList.toggle('oculto', e.target.value !== '__novo__');
+  atualizarBotaoWhatsappCliente();
   if (e.target.value === '__novo__') {
     document.getElementById('nova-cliente-nome').focus();
     return;
@@ -1166,26 +1208,26 @@ document.getElementById('evento-cliente').addEventListener('change', (e) => {
 // ---- RESPONSÁVEIS (Tami e/ou Stefania e/ou outras — pode marcar várias) ----
 let responsaveisEventoSelecionados = new Set();
 
-function configurarSeletorResponsavelEvento() {
-  document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(botao => {
-    botao.addEventListener('click', () => {
-      const valor = botao.dataset.valor;
-      const campoOutra = document.getElementById('evento-responsavel-outra');
-      if (valor === 'Outra') {
-        const ativar = !botao.classList.contains('selecionado');
-        botao.classList.toggle('selecionado', ativar);
-        campoOutra.classList.toggle('oculto', !ativar);
-        if (ativar) campoOutra.focus(); else campoOutra.value = '';
-        return;
-      }
-      botao.classList.toggle('selecionado');
-      if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
-      else responsaveisEventoSelecionados.delete(valor);
-      atualizarBotoesAvisarProfissionais();
-    });
-  });
-}
-configurarSeletorResponsavelEvento();
+// Delegação de evento: as opções são renderizadas dinamicamente
+// (Tami/Stefania + profissionais externas cadastradas em Integrações),
+// então o listener fica no container, não em cada botão.
+document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
+  const botao = e.target.closest('.opcao-responsavel');
+  if (!botao) return;
+  const valor = botao.dataset.valor;
+  const campoOutra = document.getElementById('evento-responsavel-outra');
+  if (valor === 'Outra') {
+    const ativar = !botao.classList.contains('selecionado');
+    botao.classList.toggle('selecionado', ativar);
+    campoOutra.classList.toggle('oculto', !ativar);
+    if (ativar) campoOutra.focus(); else campoOutra.value = '';
+    return;
+  }
+  botao.classList.toggle('selecionado');
+  if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
+  else responsaveisEventoSelecionados.delete(valor);
+  atualizarBotoesAvisarProfissionais();
+});
 
 // ---- AVISAR PROFISSIONAIS — WhatsApp com endereço/cliente/serviços ----
 function mensagemAvisoProfissional(nomeProfissional) {
@@ -1218,7 +1260,7 @@ function atualizarBotoesAvisarProfissionais() {
   const area = document.getElementById('area-avisar-profissionais');
   const lista = document.getElementById('lista-avisar-profissionais');
   const comWhats = Array.from(responsaveisEventoSelecionados)
-    .map(nome => perfisCacheAgenda.find(p => p.nome === nome))
+    .map(nome => perfisCacheAgenda.find(p => p.nome === nome) || profissionaisExternosCacheAgenda.find(p => p.nome === nome))
     .filter(perfil => perfil && perfil.whatsapp);
 
   lista.innerHTML = '';
@@ -1242,9 +1284,10 @@ function definirResponsavelEventoNoFormulario(nomesSalvos) {
   const nomes = Array.isArray(nomesSalvos) ? nomesSalvos : (nomesSalvos ? [nomesSalvos] : []);
   const extras = [];
   nomes.forEach(nome => {
-    if (nome === 'Tami' || nome === 'Stefania') {
+    const botaoOpcao = nome && document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${CSS.escape(nome)}"]`);
+    if (botaoOpcao) {
       responsaveisEventoSelecionados.add(nome);
-      document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${nome}"]`).classList.add('selecionado');
+      botaoOpcao.classList.add('selecionado');
     } else if (nome) {
       extras.push(nome);
     }
@@ -1587,7 +1630,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   if (modo === 'novo') {
     document.getElementById('modal-evento-titulo').textContent = 'Adicionar cliente';
     document.getElementById('botao-excluir-evento').classList.add('oculto');
-    document.getElementById('botao-whatsapp-evento').classList.add('oculto');
+    document.getElementById('botao-whatsapp-cliente-inline').classList.add('oculto');
     document.getElementById('evento-tipo').value = 'social';
     document.getElementById('evento-data').value = chaveData(diaClicado);
     document.getElementById('evento-hora-inicio').value = '10:00';
@@ -1645,24 +1688,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
     (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
 
-    const clienteDoEvento = clientesCacheAgenda.find(c => c.id === evento.cliente_id);
-    const botaoWhats = document.getElementById('botao-whatsapp-evento');
-    botaoWhats.classList.toggle('oculto', !(clienteDoEvento && clienteDoEvento.whatsapp));
-    botaoWhats.onclick = () => {
-      const subtotal = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
-      const desconto = parseFloat(document.getElementById('evento-desconto').value) || 0;
-      const valorTotal = Math.max(0, subtotal - desconto);
-      const dadosMsg = {
-        data: document.getElementById('evento-data').value,
-        horaInicio: document.getElementById('evento-hora-inicio').value,
-        local: document.getElementById('evento-local').value.trim(),
-        valorTotal,
-        valorSinal: parseFloat(document.getElementById('evento-valor-sinal').value) || 0,
-        sinalPago: document.getElementById('evento-sinal-pago').checked,
-        servicos: listaServicosSelecionados(),
-      };
-      abrirWhatsapp(clienteDoEvento.whatsapp, mensagemConfirmacaoEvento(dadosMsg, clienteDoEvento));
-    };
+    atualizarBotaoWhatsappCliente();
   }
   modalEvento.classList.remove('oculto');
 }

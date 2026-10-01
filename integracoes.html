@@ -135,6 +135,16 @@ h1, h2, h3 {
 }
 .linha-perfil-google:last-child { margin-bottom: 0; }
 .linha-perfil-google-nome { font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-weight: 600; }
+
+.linha-form { display: flex; gap: 1rem; }
+.campo-form { flex: 1; }
+.campo-form input {
+  width: 100%; font-family: 'Montserrat', sans-serif; padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 0.9rem;
+  background: var(--surface2); color: var(--ink);
+}
+.campo-form input:focus { outline: none; border-color: var(--teal); background: var(--white); }
+@media (max-width: 480px) { .linha-form { flex-direction: column; gap: 0.6rem; } }
 .etiqueta-conectado { font-size: 0.72rem; font-weight: 600; color: var(--teal-deep); background: var(--teal-dim); padding: 0.25rem 0.6rem; border-radius: 999px; }
 .etiqueta-desconectado { font-size: 0.72rem; font-weight: 600; color: var(--ink2); background: var(--surface3); padding: 0.25rem 0.6rem; border-radius: 999px; }
 
@@ -200,6 +210,17 @@ h1, h2, h3 {
     <div id="lista-perfis-whatsapp">
       <p class="subtitulo" style="margin:0">Carregando perfis...</p>
     </div>
+  </div>
+
+  <div class="cartao-integracao">
+    <div class="cartao-integracao-topo"><h2>Outras profissionais</h2></div>
+    <p class="desc">Freelancers e assistentes que ajudam em atendimentos mas não têm login no app. Aparecem como opção em "Responsáveis" na Agenda, com botão de avisar no WhatsApp.</p>
+    <div id="lista-profissionais-externos" style="margin-bottom:0.9rem"></div>
+    <div class="linha-form">
+      <div class="campo-form"><input type="text" id="novo-profissional-nome" placeholder="Nome"></div>
+      <div class="campo-form"><input type="text" id="novo-profissional-whatsapp" placeholder="WhatsApp (+55 31 9....)"></div>
+    </div>
+    <button type="button" class="botao-secundario" id="botao-adicionar-profissional-externo" style="margin-top:0.6rem">+ Adicionar</button>
   </div>
 
   <div class="cartao-integracao">
@@ -366,6 +387,46 @@ async function carregarPerfisWhatsapp() {
 }
 
 // ============================================================
+// OUTRAS PROFISSIONAIS (sem login no app)
+// ============================================================
+
+async function carregarProfissionaisExternos() {
+  const container = document.getElementById('lista-profissionais-externos');
+  const { data: profissionais, error } = await supabaseClient.from('profissionais_externos').select('*').order('nome');
+  if (error) { container.innerHTML = `<p class="erro">Erro ao carregar: ${error.message}</p>`; return; }
+
+  container.innerHTML = profissionais.length ? '' : '<p class="subtitulo" style="margin:0">Nenhuma cadastrada ainda.</p>';
+  profissionais.forEach(prof => {
+    const linha = document.createElement('div');
+    linha.className = 'linha-perfil-google';
+    linha.innerHTML = `
+      <span class="linha-perfil-google-nome">${prof.nome}</span>
+      <div style="display:flex; gap:0.5rem; align-items:center">
+        <span class="subtitulo" style="margin:0">${prof.whatsapp || 'sem WhatsApp'}</span>
+        <button type="button" class="botao-texto" data-id="${prof.id}">Remover</button>
+      </div>
+    `;
+    linha.querySelector('button').addEventListener('click', async () => {
+      await supabaseClient.from('profissionais_externos').delete().eq('id', prof.id);
+      await carregarProfissionaisExternos();
+    });
+    container.appendChild(linha);
+  });
+}
+
+document.getElementById('botao-adicionar-profissional-externo').addEventListener('click', async () => {
+  const nome = document.getElementById('novo-profissional-nome').value.trim();
+  const whatsapp = document.getElementById('novo-profissional-whatsapp').value.trim();
+  if (!nome) { toast('Digite o nome da profissional.', 'erro'); return; }
+  const { error } = await supabaseClient.from('profissionais_externos').insert({ nome, whatsapp: whatsapp || null });
+  if (error) { toast('Erro ao adicionar: ' + error.message, 'erro'); return; }
+  document.getElementById('novo-profissional-nome').value = '';
+  document.getElementById('novo-profissional-whatsapp').value = '';
+  toast('Profissional adicionada.', 'sucesso');
+  await carregarProfissionaisExternos();
+});
+
+// ============================================================
 // NOTIFICAÇÕES PUSH
 // Preencha VAPID_PUBLIC_KEY com a chave pública gerada (a privada
 // fica só na Edge Function, nunca aqui).
@@ -440,6 +501,7 @@ document.getElementById('botao-ativar-notificacoes').addEventListener('click', a
   if (!ok) return;
   await carregarPerfisGoogle();
   await carregarPerfisWhatsapp();
+  await carregarProfissionaisExternos();
   await atualizarStatusNotificacoes();
 })();
 
