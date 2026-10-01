@@ -500,17 +500,21 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .grafico-container h3 { font-size: 1.15rem; margin-bottom: 1rem; }
 .grafico-canvas-wrap { position: relative; height: 260px; }
 
-.breakdown-profissionais { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 1.4rem; }
-.linha-breakdown { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
-.linha-breakdown .nome-prof { color: var(--ink); font-weight: 500; }
-.linha-breakdown .valor-prof { font-family: 'DM Mono', monospace; color: #96702F; font-weight: 600; }
+.breakdown-profissionais { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 1.2rem; }
+.linha-breakdown {
+  display: flex; align-items: baseline; justify-content: space-between;
+  flex-wrap: wrap; column-gap: 0.8rem; row-gap: 0.1rem; font-size: 0.85rem;
+}
+.linha-breakdown .nome-prof { color: var(--ink); font-weight: 500; flex-shrink: 0; }
+.linha-breakdown .valor-prof { font-family: 'DM Mono', monospace; color: #96702F; font-weight: 600; white-space: nowrap; }
 .rotulo-dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink3); font-size: 0.72rem; }
-.linha-breakdown .qtd-prof { color: var(--ink2); font-size: 0.78rem; margin-left: 0.4rem; }
+.linha-breakdown .qtd-prof { flex-basis: 100%; color: var(--ink2); font-size: 0.76rem; }
 .projecao-total-linha {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem 0.8rem;
   margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border); font-weight: 600;
 }
-.projecao-total-linha .valor-prof { font-size: 1.05rem; }
+.projecao-total-linha .valor-prof { font-size: 1.05rem; white-space: nowrap; }
+.rotulo-mes-projecao { display: block; margin-top: 0.2rem; }
 
 .export-row-financeiro { display: flex; gap: 0.7rem; margin-bottom: 1.4rem; }
 .botao-exportar {
@@ -561,8 +565,8 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   <p class="subtitulo">Sinal (20%) para o negócio, saldo (80%) para quem atendeu.</p>
 
   <div class="grafico-container" id="projecao-mes-card">
-    <h3>Projeção do mês <span class="rotulo-dica">— por profissional, com base nos compromissos já marcados em <span id="projecao-mes-nome"></span></span></h3>
-    <p class="subtitulo" style="margin-top:-0.6rem; margin-bottom:1rem;">Soma do sinal (profissional) + saldo de cada compromisso do mês, dividida entre as responsáveis quando mais de uma atende no mesmo horário. É uma estimativa — muda se algo for editado ou cancelado.</p>
+    <h3>Projeção do mês<span class="rotulo-dica rotulo-mes-projecao">por profissional, com compromissos já marcados em <span id="projecao-mes-nome"></span></span></h3>
+    <p class="subtitulo" style="margin-top:0.6rem; margin-bottom:1rem;">Soma do sinal (profissional) + saldo de cada compromisso, dividida entre as responsáveis quando mais de uma atende no mesmo horário. É uma estimativa — muda se algo for editado ou cancelado.</p>
     <div class="breakdown-profissionais" id="breakdown-projecao-profissionais">
       <p class="subtitulo" style="margin:0">Carregando...</p>
     </div>
@@ -979,8 +983,9 @@ async function carregarProjecaoMes() {
     const qtd = porProfissional[nome].qtd;
     return `
       <div class="linha-breakdown">
-        <span class="nome-prof">${escaparHtmlServico(nome)}<span class="qtd-prof">(${qtd} ${qtd === 1 ? 'compromisso' : 'compromissos'})</span></span>
+        <span class="nome-prof">${escaparHtmlServico(nome)}</span>
         <span class="valor-prof">R$ ${porProfissional[nome].valor.toFixed(2)}</span>
+        <span class="qtd-prof">${qtd} ${qtd === 1 ? 'compromisso' : 'compromissos'}</span>
       </div>`;
   }).join('');
   totalEl.textContent = `R$ ${totalGeral.toFixed(2)}`;
