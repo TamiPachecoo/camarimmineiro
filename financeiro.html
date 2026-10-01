@@ -504,6 +504,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .linha-breakdown { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; }
 .linha-breakdown .nome-prof { color: var(--ink); font-weight: 500; }
 .linha-breakdown .valor-prof { font-family: 'DM Mono', monospace; color: #96702F; font-weight: 600; }
+.rotulo-dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink3); font-size: 0.72rem; }
+.linha-breakdown .qtd-prof { color: var(--ink2); font-size: 0.78rem; margin-left: 0.4rem; }
+.projecao-total-linha {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 0.9rem; padding-top: 0.9rem; border-top: 1px solid var(--border); font-weight: 600;
+}
+.projecao-total-linha .valor-prof { font-size: 1.05rem; }
 
 .export-row-financeiro { display: flex; gap: 0.7rem; margin-bottom: 1.4rem; }
 .botao-exportar {
@@ -552,6 +559,18 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
   <h1>Financeiro</h1>
   <p class="subtitulo">Sinal (20%) para o negócio, saldo (80%) para quem atendeu.</p>
+
+  <div class="grafico-container" id="projecao-mes-card">
+    <h3>Projeção do mês <span class="rotulo-dica">— por profissional, com base nos compromissos já marcados em <span id="projecao-mes-nome"></span></span></h3>
+    <p class="subtitulo" style="margin-top:-0.6rem; margin-bottom:1rem;">Soma do sinal (profissional) + saldo de cada compromisso do mês, dividida entre as responsáveis quando mais de uma atende no mesmo horário. É uma estimativa — muda se algo for editado ou cancelado.</p>
+    <div class="breakdown-profissionais" id="breakdown-projecao-profissionais">
+      <p class="subtitulo" style="margin:0">Carregando...</p>
+    </div>
+    <div class="projecao-total-linha">
+      <span class="nome-prof">Total projetado para as profissionais</span>
+      <span class="valor-prof" id="projecao-total-profissionais">R$ 0.00</span>
+    </div>
+  </div>
 
   <div class="filtro-periodo-financeiro">
     <div class="campo-form">
@@ -887,6 +906,86 @@ async function carregarListaProfissionais() {
     nomes.map(nome => `<option value="${nome}">${nome}</option>`).join('');
 }
 
+// ---- PROJEÇÃO DO MÊS, POR PROFISSIONAL ----
+// Olha os compromissos já marcados no mês atual (passados e futuros) em
+// eventos_calendario + evento_participantes e estima quanto cada
+// profissional deve receber (sinal-profissional + saldo), dividindo o
+// valor do compromisso entre as responsáveis quando mais de uma atende
+// no mesmo horário. É só uma projeção com base no que já está agendado
+// e lançado — não é o valor efetivamente recebido (isso é o resumo
+// abaixo, baseado na tabela "pagamentos").
+async function carregarProjecaoMes() {
+  const hoje = new Date();
+  const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+  const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0, 23, 59, 59);
+  const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  document.getElementById('projecao-mes-nome').textContent = nomeMes;
+
+  const breakdownEl = document.getElementById('breakdown-projecao-profissionais');
+  const totalEl = document.getElementById('projecao-total-profissionais');
+
+  const { data: eventos, error } = await supabaseClient
+    .from('eventos_calendario')
+    .select('id, responsaveis, valor_total, valor_sinal, valor_sinal_profissional')
+    .gte('data_inicio', inicioMes.toISOString())
+    .lte('data_inicio', fimMes.toISOString());
+
+  if (error || !eventos || !eventos.length) {
+    breakdownEl.innerHTML = '<p class="subtitulo" style="margin:0">Nenhum compromisso marcado para este mês ainda.</p>';
+    totalEl.textContent = 'R$ 0.00';
+    return;
+  }
+
+  const { data: participantes } = await supabaseClient
+    .from('evento_participantes')
+    .select('evento_id, valor_sinal_profissional, valor_saldo')
+    .in('evento_id', eventos.map(e => e.id));
+
+  const participantesPorEvento = {};
+  (participantes || []).forEach(p => {
+    (participantesPorEvento[p.evento_id] = participantesPorEvento[p.evento_id] || []).push(p);
+  });
+
+  const porProfissional = {};
+  eventos.forEach(ev => {
+    const responsaveis = (ev.responsaveis && ev.responsaveis.length) ? ev.responsaveis : ['Sem profissional definida'];
+    const total = Number(ev.valor_total) || 0;
+    const sinal = Number(ev.valor_sinal) || 0;
+    const sinalProf = Number(ev.valor_sinal_profissional) || 0;
+    const saldoPrincipal = Math.max(0, total - sinal - sinalProf);
+    let potEvento = sinalProf + saldoPrincipal;
+    (participantesPorEvento[ev.id] || []).forEach(p => {
+      potEvento += (Number(p.valor_sinal_profissional) || 0) + (Number(p.valor_saldo) || 0);
+    });
+
+    const porPessoa = potEvento / responsaveis.length;
+    responsaveis.forEach(nome => {
+      if (!porProfissional[nome]) porProfissional[nome] = { valor: 0, qtd: 0 };
+      porProfissional[nome].valor += porPessoa;
+      porProfissional[nome].qtd += 1;
+    });
+  });
+
+  const nomes = Object.keys(porProfissional).sort();
+  if (!nomes.length) {
+    breakdownEl.innerHTML = '<p class="subtitulo" style="margin:0">Nenhum compromisso marcado para este mês ainda.</p>';
+    totalEl.textContent = 'R$ 0.00';
+    return;
+  }
+
+  let totalGeral = 0;
+  breakdownEl.innerHTML = nomes.map(nome => {
+    totalGeral += porProfissional[nome].valor;
+    const qtd = porProfissional[nome].qtd;
+    return `
+      <div class="linha-breakdown">
+        <span class="nome-prof">${escaparHtmlServico(nome)}<span class="qtd-prof">(${qtd} ${qtd === 1 ? 'compromisso' : 'compromissos'})</span></span>
+        <span class="valor-prof">R$ ${porProfissional[nome].valor.toFixed(2)}</span>
+      </div>`;
+  }).join('');
+  totalEl.textContent = `R$ ${totalGeral.toFixed(2)}`;
+}
+
 async function carregarResumoFinanceiro() {
   const inicio = document.getElementById('financeiro-data-inicio').value;
   const fim = document.getElementById('financeiro-data-fim').value;
@@ -1103,6 +1202,7 @@ document.getElementById('financeiro-filtro-profissional').addEventListener('chan
   const ok = await protegerRota();
   if (ok) {
     definirPeriodoPadrao();
+    await carregarProjecaoMes();
     await carregarServicos();
     await carregarListaProfissionais();
     await carregarResumoFinanceiro();
