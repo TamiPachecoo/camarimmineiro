@@ -428,33 +428,33 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   text-transform: uppercase; color: var(--ink3); padding: 0.5rem 0;
 }
 
+/* Grade estilo Google Calendar — só número do dia + pontinhos indicando
+   compromissos. Detalhes aparecem no painel abaixo ao tocar no dia. */
 .calendario-grade {
-  display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(108px, auto);
+  display: grid; grid-template-columns: repeat(7, 1fr);
   gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
 }
 .calendario-celula {
-  background: var(--surface); padding: 0.4rem 0.4rem 0.3rem; cursor: pointer;
-  display: flex; flex-direction: column; gap: 3px; transition: background var(--transition);
+  background: var(--surface); cursor: pointer;
+  aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; transition: background var(--transition);
   position: relative;
 }
 .calendario-celula:hover { background: var(--surface2); }
 .calendario-celula.fora-do-mes { background: var(--bg); }
 .calendario-celula.fora-do-mes .calendario-numero-dia { color: var(--ink3); }
 .calendario-numero-dia {
-  font-family: 'DM Mono', monospace; font-size: 0.78rem; color: var(--ink2);
-  width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--ink);
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
 }
 .calendario-celula.hoje .calendario-numero-dia {
   background: var(--teal-deep); color: var(--white); border-radius: 50%; font-weight: 500;
 }
-.evento-chip {
-  font-size: 0.66rem; font-weight: 500; padding: 2px 6px; border-radius: 5px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  cursor: pointer; transition: opacity var(--transition);
-}
-.evento-chip:hover { opacity: 0.8; }
-.evento-chip .hora-evento { font-family: 'DM Mono', monospace; font-weight: 600; margin-right: 3px; }
-.evento-mais { font-size: 0.66rem; color: var(--ink3); padding: 0 4px; cursor: pointer; }
+.calendario-celula.selecionado { background: var(--teal-dim); }
+.calendario-celula.selecionado:not(.hoje) .calendario-numero-dia { font-weight: 600; }
+.calendario-pontos { display: flex; gap: 3px; height: 6px; align-items: center; }
+.calendario-ponto { width: 6px; height: 6px; border-radius: 50%; }
+.calendario-ponto-mais { font-size: 0.55rem; color: var(--ink3); line-height: 1; }
 
 /* cores por profissional */
 :root {
@@ -463,23 +463,37 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   --prof-outra: #B85C7D; --prof-outra-bg: #F8E8EE;
   --prof-nenhum: #8C8072; --prof-nenhum-bg: #EDE1CC;
 }
-.evento-chip-prof-tami { background: var(--prof-tami-bg); color: var(--prof-tami); }
-.evento-chip-prof-stefania { background: var(--prof-stefania-bg); color: var(--prof-stefania); }
-.evento-chip-prof-outra { background: var(--prof-outra-bg); color: var(--prof-outra); }
-.evento-chip-prof-nenhum { background: var(--prof-nenhum-bg); color: var(--prof-nenhum); }
+.evento-linha-prof-tami { border-left-color: var(--prof-tami); }
+.evento-linha-prof-stefania { border-left-color: var(--prof-stefania); }
+.evento-linha-prof-outra { border-left-color: var(--prof-outra); }
+.evento-linha-prof-nenhum { border-left-color: var(--prof-nenhum); }
 
 .ponto-prof-tami { background: var(--prof-tami); }
 .ponto-prof-stefania { background: var(--prof-stefania); }
 .ponto-prof-outra { background: var(--prof-outra); }
 .ponto-prof-nenhum { background: var(--prof-nenhum); }
 
-@media (max-width: 700px) {
-  /* Em vez de espremer as 7 colunas até ficar ilegível, deixa a grade
-     no tamanho legível e permite rolar na horizontal (como o Google
-     Calendar faz no mobile). */
-  .calendario-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -1.25rem; padding: 0 1.25rem; }
-  .calendario-grade-semana, .calendario-grade { min-width: 630px; }
-  .calendario-grade { grid-auto-rows: minmax(88px, auto); }
+/* Painel do dia selecionado — lista de compromissos, como ao tocar
+   numa data no Google Calendar. */
+.painel-dia { margin-top: 1.4rem; }
+.painel-dia-cabecalho { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; }
+.painel-dia-cabecalho h2 { font-size: 1.3rem; text-transform: capitalize; }
+.painel-dia-lista { display: flex; flex-direction: column; gap: 0.6rem; }
+.painel-dia-vazio { color: var(--ink2); font-size: 0.85rem; padding: 1.2rem 0; text-align: center; }
+.evento-linha {
+  display: flex; align-items: center; gap: 0.9rem;
+  background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--ink3);
+  border-radius: var(--radius-sm); padding: 0.75rem 1rem; cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.evento-linha:hover { box-shadow: var(--shadow); border-color: var(--teal); }
+.evento-linha-hora { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 0.85rem; color: var(--ink2); min-width: 44px; }
+.evento-linha-corpo { flex: 1; min-width: 0; }
+.evento-linha-titulo { font-size: 0.92rem; color: var(--ink); }
+.evento-linha-info { font-size: 0.76rem; color: var(--ink2); margin-top: 0.15rem; }
+
+@media (max-width: 480px) {
+  .calendario-numero-dia { font-size: 0.78rem; width: 24px; height: 24px; }
 }
 
 /* ============================================================
@@ -614,17 +628,23 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
   <div class="legenda-tipos" id="legenda-tipos"></div>
 
-  <div class="calendario-scroll">
-    <div class="calendario-grade-semana">
-      <div class="calendario-dia-semana-nome">Dom</div>
-      <div class="calendario-dia-semana-nome">Seg</div>
-      <div class="calendario-dia-semana-nome">Ter</div>
-      <div class="calendario-dia-semana-nome">Qua</div>
-      <div class="calendario-dia-semana-nome">Qui</div>
-      <div class="calendario-dia-semana-nome">Sex</div>
-      <div class="calendario-dia-semana-nome">Sáb</div>
+  <div class="calendario-grade-semana">
+    <div class="calendario-dia-semana-nome">Dom</div>
+    <div class="calendario-dia-semana-nome">Seg</div>
+    <div class="calendario-dia-semana-nome">Ter</div>
+    <div class="calendario-dia-semana-nome">Qua</div>
+    <div class="calendario-dia-semana-nome">Qui</div>
+    <div class="calendario-dia-semana-nome">Sex</div>
+    <div class="calendario-dia-semana-nome">Sáb</div>
+  </div>
+  <div class="calendario-grade" id="calendario-grade"></div>
+
+  <div class="painel-dia" id="painel-dia">
+    <div class="painel-dia-cabecalho">
+      <h2 id="painel-dia-titulo">—</h2>
+      <button type="button" class="botao-pequeno botao-principal" id="botao-adicionar-no-dia">+ Adicionar</button>
     </div>
-    <div class="calendario-grade" id="calendario-grade"></div>
+    <div class="painel-dia-lista" id="painel-dia-lista"></div>
   </div>
 
 </main>
@@ -1155,6 +1175,18 @@ function escaparHtmlAgenda(texto) {
   return div.innerHTML;
 }
 
+let diaSelecionado = new Date();
+
+function eventosPorDiaDoMes() {
+  const eventosPorDia = {};
+  eventosCache.forEach(ev => {
+    const chave = chaveData(new Date(ev.data_inicio));
+    if (!eventosPorDia[chave]) eventosPorDia[chave] = [];
+    eventosPorDia[chave].push(ev);
+  });
+  return eventosPorDia;
+}
+
 function renderizarCalendario() {
   renderizarLegendaProfissionais();
   document.getElementById('calendario-mes-ano').textContent =
@@ -1166,14 +1198,8 @@ function renderizarCalendario() {
 
   const hoje = new Date();
   const hojeChave = chaveData(hoje);
-
-  const eventosPorDia = {};
-  eventosCache.forEach(ev => {
-    const dataEv = new Date(ev.data_inicio);
-    const chave = chaveData(dataEv);
-    if (!eventosPorDia[chave]) eventosPorDia[chave] = [];
-    eventosPorDia[chave].push(ev);
-  });
+  const selecionadoChave = chaveData(diaSelecionado);
+  const eventosPorDia = eventosPorDiaDoMes();
 
   const gradeEl = document.getElementById('calendario-grade');
   gradeEl.innerHTML = '';
@@ -1184,36 +1210,81 @@ function renderizarCalendario() {
     const chave = chaveData(dia);
     const foraDoMes = dia.getMonth() !== mesAtual.getMonth();
     const ehHoje = chave === hojeChave;
+    const ehSelecionado = chave === selecionadoChave;
 
     const celula = document.createElement('div');
-    celula.className = 'calendario-celula' + (foraDoMes ? ' fora-do-mes' : '') + (ehHoje ? ' hoje' : '');
+    celula.className = 'calendario-celula'
+      + (foraDoMes ? ' fora-do-mes' : '')
+      + (ehHoje ? ' hoje' : '')
+      + (ehSelecionado ? ' selecionado' : '');
 
     const numero = document.createElement('div');
     numero.className = 'calendario-numero-dia';
     numero.textContent = dia.getDate();
     celula.appendChild(numero);
 
-    const eventosDoDia = eventosPorDia[chave] || [];
-    const visiveis = eventosDoDia.slice(0, 3);
-    visiveis.forEach(ev => {
-      const chip = document.createElement('div');
-      chip.className = 'evento-chip evento-chip-prof-' + chaveCorProfissional(ev.responsavel_nome);
-      const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
-      chip.innerHTML = `<span class="hora-evento">${hora}</span>${escaparHtmlAgenda(ev.titulo)}`;
-      chip.addEventListener('click', (e) => { e.stopPropagation(); abrirModalEvento('editar', ev, dia); });
-      celula.appendChild(chip);
-    });
-    if (eventosDoDia.length > 3) {
-      const mais = document.createElement('div');
-      mais.className = 'evento-mais';
-      mais.textContent = `+${eventosDoDia.length - 3} mais`;
-      celula.appendChild(mais);
+    const eventosDoDia = (eventosPorDia[chave] || []).sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+    if (eventosDoDia.length) {
+      const pontos = document.createElement('div');
+      pontos.className = 'calendario-pontos';
+      eventosDoDia.slice(0, 3).forEach(ev => {
+        const ponto = document.createElement('span');
+        ponto.className = 'calendario-ponto ponto-prof-' + chaveCorProfissional(ev.responsavel_nome);
+        pontos.appendChild(ponto);
+      });
+      if (eventosDoDia.length > 3) {
+        const mais = document.createElement('span');
+        mais.className = 'calendario-ponto-mais';
+        mais.textContent = `+${eventosDoDia.length - 3}`;
+        pontos.appendChild(mais);
+      }
+      celula.appendChild(pontos);
     }
 
-    celula.addEventListener('click', () => abrirModalEvento('novo', null, dia));
+    celula.addEventListener('click', () => selecionarDia(dia));
     gradeEl.appendChild(celula);
   }
+
+  renderizarPainelDia();
 }
+
+function selecionarDia(dia) {
+  diaSelecionado = dia;
+  renderizarCalendario();
+}
+
+function renderizarPainelDia() {
+  const chave = chaveData(diaSelecionado);
+  const eventosPorDia = eventosPorDiaDoMes();
+  const eventosDoDia = (eventosPorDia[chave] || []).sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+
+  document.getElementById('painel-dia-titulo').textContent =
+    diaSelecionado.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const listaEl = document.getElementById('painel-dia-lista');
+  if (!eventosDoDia.length) {
+    listaEl.innerHTML = '<p class="painel-dia-vazio">Nenhum compromisso neste dia.</p>';
+    return;
+  }
+  listaEl.innerHTML = '';
+  eventosDoDia.forEach(ev => {
+    const cliente = clientesCacheAgenda.find(c => c.id === ev.cliente_id);
+    const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
+    const linha = document.createElement('div');
+    linha.className = 'evento-linha evento-linha-prof-' + chaveCorProfissional(ev.responsavel_nome);
+    linha.innerHTML = `
+      <span class="evento-linha-hora">${hora}</span>
+      <div class="evento-linha-corpo">
+        <div class="evento-linha-titulo">${escaparHtmlAgenda(ev.titulo)}</div>
+        <div class="evento-linha-info">${cliente ? escaparHtmlAgenda(cliente.nome_noiva) + ' · ' : ''}${ev.responsavel_nome || 'Sem responsável'}${ev.local ? ' · ' + escaparHtmlAgenda(ev.local) : ''}</div>
+      </div>
+    `;
+    linha.addEventListener('click', () => abrirModalEvento('editar', ev, diaSelecionado));
+    listaEl.appendChild(linha);
+  });
+}
+
+document.getElementById('botao-adicionar-no-dia').addEventListener('click', () => abrirModalEvento('novo', null, diaSelecionado));
 
 async function irParaMes(delta) {
   mesAtual.setMonth(mesAtual.getMonth() + delta);
@@ -1224,6 +1295,7 @@ async function irParaMes(delta) {
 
 async function irParaHoje() {
   mesAtual = new Date(); mesAtual.setDate(1);
+  diaSelecionado = new Date();
   await carregarEventosDoMes();
   renderizarCalendario();
 }
