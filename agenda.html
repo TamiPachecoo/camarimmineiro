@@ -606,6 +606,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   background: var(--teal-dim); border: 1px solid var(--teal); border-radius: var(--radius-sm);
   padding: 0.9rem 1rem 0.9rem; margin: 0.3rem 0 1rem;
 }
+.botao-confirmar-nova-profissional {
+  width: 100%; margin-top: 0.3rem; padding: 0.8rem;
+  border: none; border-radius: var(--radius-sm);
+  background: var(--teal-deep); color: var(--white);
+  font-weight: 600; font-size: 0.9rem; cursor: pointer;
+}
+.botao-confirmar-nova-profissional:hover { background: var(--teal); }
 .check-pagamento { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .check-pagamento input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--teal-deep); flex-shrink: 0; }
 .check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
@@ -768,7 +775,8 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
             <input type="text" id="nova-profissional-whatsapp" placeholder="+55 31 9....">
           </div>
         </div>
-        <button type="button" class="botao-texto" id="botao-salvar-nova-profissional" style="margin-top:0.2rem">+ Adicionar à equipe</button>
+        <button type="button" class="botao-confirmar-nova-profissional" id="botao-salvar-nova-profissional">✓ Confirmar e adicionar à equipe</button>
+        <p class="rotulo-dica" style="display:block; margin-top:0.3rem">Se você não tocar aqui, ela não será salva.</p>
       </div>
       <div class="oculto" id="area-avisar-profissionais">
         <div id="lista-avisar-profissionais" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:0.6rem"></div>
@@ -1863,6 +1871,22 @@ formEvento.addEventListener('submit', async (e) => {
     clienteId = novaCliente.id;
     clientesCacheAgenda.push(novaCliente);
     atualizarOpcoesSelectClientes();
+  }
+
+  // Rede de segurança: se o nome de uma nova profissional ficou
+  // preenchido mas "Confirmar e adicionar à equipe" nunca foi tocado,
+  // cria ela agora mesmo assim em vez de perder o que foi digitado.
+  const nomeNovaProfissionalPendente = document.getElementById('nova-profissional-nome').value.trim();
+  if (nomeNovaProfissionalPendente) {
+    const { data: novaProfissional, error: erroNovaProfissional } = await supabaseClient.from('profissionais_externos')
+      .insert({ nome: nomeNovaProfissionalPendente, whatsapp: document.getElementById('nova-profissional-whatsapp').value.trim() || null })
+      .select().single();
+    if (!erroNovaProfissional) {
+      profissionaisExternosCacheAgenda.push(novaProfissional);
+      responsaveisEventoSelecionados.add(novaProfissional.nome);
+      document.getElementById('nova-profissional-nome').value = '';
+      document.getElementById('nova-profissional-whatsapp').value = '';
+    }
   }
 
   const subtotalServicos = catalogoServicosAgenda.reduce((soma, s) => soma + (Number(s.valor) * (quantidadesServicoEvento[s.id] || 0)), 0);
