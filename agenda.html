@@ -645,6 +645,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <div class="campo-form">
           <label for="evento-tipo">Tipo</label>
           <select id="evento-tipo">
+            <option value="social">Social (cabelo e maquiagem)</option>
             <option value="prova">Prova</option>
             <option value="dia_casamento">Dia do casamento</option>
             <option value="consulta">Consulta</option>
@@ -1270,6 +1271,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('modal-evento-titulo').textContent = 'Adicionar cliente';
     document.getElementById('botao-excluir-evento').classList.add('oculto');
     document.getElementById('botao-whatsapp-evento').classList.add('oculto');
+    document.getElementById('evento-tipo').value = 'social';
     document.getElementById('evento-data').value = chaveData(diaClicado);
     document.getElementById('evento-hora-inicio').value = '10:00';
     document.getElementById('evento-hora-fim').value = '';
@@ -1352,8 +1354,11 @@ formEvento.addEventListener('submit', async (e) => {
   if (clienteId === '__novo__') {
     const nomeNovaCliente = document.getElementById('nova-cliente-nome').value.trim();
     if (!nomeNovaCliente) { erroEl.textContent = 'Preencha o nome da nova cliente.'; return; }
+    const tipoEventoNovo = document.getElementById('evento-tipo').value;
+    const tipoClienteNovo = (tipoEventoNovo === 'prova' || tipoEventoNovo === 'dia_casamento') ? 'noiva' : 'social';
     const { data: novaCliente, error: erroNovaCliente } = await supabaseClient.from('clientes').insert({
       nome_noiva: nomeNovaCliente,
+      tipo_cliente: tipoClienteNovo,
       whatsapp: document.getElementById('nova-cliente-whatsapp').value.trim() || null,
       endereco: document.getElementById('nova-cliente-endereco').value.trim() || null,
       status: 'confirmada',
