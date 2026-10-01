@@ -537,6 +537,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
 }
 .opcao-responsavel.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+.rotulo-dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink3); font-size: 0.72rem; }
 
 .opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
 .opcao-tipo-cliente {
@@ -591,6 +592,19 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .check-pagamento label { margin: 0; font-size: 0.85rem; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink); cursor: pointer; }
 .campo-metodo-pagamento { margin-left: 24px; margin-bottom: 0.6rem; }
 .campo-metodo-pagamento select { width: 100%; }
+
+/* clientes adicionais no mesmo atendimento (grupo) */
+.secao-grupo { margin-top: 1rem; }
+.linha-participante-grupo {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.8rem 0.9rem 0.3rem; margin-bottom: 0.7rem; position: relative;
+}
+.linha-participante-grupo .linha-form { align-items: flex-start; }
+.botao-remover-participante {
+  position: absolute; top: 0.6rem; right: 0.7rem;
+  background: none; border: none; color: var(--ink3); font-size: 1rem; cursor: pointer; line-height: 1;
+}
+.botao-remover-participante:hover { color: var(--red); }
 </style>
 </head>
 <body>
@@ -718,13 +732,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       <label for="evento-local">Local</label>
       <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
 
-      <label>Responsável</label>
+      <label>Responsáveis <span class="rotulo-dica">(pode marcar mais de uma)</span></label>
       <div class="opcoes-responsavel">
         <div class="opcao-responsavel" data-valor="Tami">Tami</div>
         <div class="opcao-responsavel" data-valor="Stefania">Stefania</div>
-        <div class="opcao-responsavel" data-valor="Outra">Outra</div>
+        <div class="opcao-responsavel" data-valor="Outra">Outra(s)</div>
       </div>
-      <input type="text" id="evento-responsavel-outra" placeholder="Nome de quem vai atender" class="oculto" style="margin-top:0.5rem">
+      <input type="text" id="evento-responsavel-outra" placeholder="Outros nomes, separados por vírgula" class="oculto" style="margin-top:0.5rem">
 
       <label for="evento-observacoes">Observações</label>
       <textarea id="evento-observacoes" rows="3"></textarea>
@@ -781,6 +795,13 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
             <option value="cartao">Cartão</option>
           </select>
         </div>
+      </div>
+
+      <div class="secao-grupo">
+        <div class="secao-pagamento-titulo">Outras clientes neste atendimento (opcional)</div>
+        <p class="subtitulo" style="margin:0 0 0.8rem">Pra grupos — cada cliente com seu próprio valor.</p>
+        <div id="lista-participantes-grupo"></div>
+        <button type="button" class="botao-texto" id="botao-adicionar-participante">+ Adicionar cliente ao grupo</button>
       </div>
 
       <div class="modal-rodape">
@@ -1102,45 +1123,57 @@ document.getElementById('evento-cliente').addEventListener('change', (e) => {
   }
 });
 
-// ---- RESPONSÁVEL (Tami / Stefania / Outra) ----
-let responsavelEventoSelecionado = '';
+// ---- RESPONSÁVEIS (Tami e/ou Stefania e/ou outras — pode marcar várias) ----
+let responsaveisEventoSelecionados = new Set();
 
 function configurarSeletorResponsavelEvento() {
   document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(botao => {
     botao.addEventListener('click', () => {
-      document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
-      botao.classList.add('selecionado');
-      responsavelEventoSelecionado = botao.dataset.valor;
+      const valor = botao.dataset.valor;
       const campoOutra = document.getElementById('evento-responsavel-outra');
-      if (responsavelEventoSelecionado === 'Outra') { campoOutra.classList.remove('oculto'); campoOutra.focus(); }
-      else { campoOutra.classList.add('oculto'); }
+      if (valor === 'Outra') {
+        const ativar = !botao.classList.contains('selecionado');
+        botao.classList.toggle('selecionado', ativar);
+        campoOutra.classList.toggle('oculto', !ativar);
+        if (ativar) campoOutra.focus(); else campoOutra.value = '';
+        return;
+      }
+      botao.classList.toggle('selecionado');
+      if (botao.classList.contains('selecionado')) responsaveisEventoSelecionados.add(valor);
+      else responsaveisEventoSelecionados.delete(valor);
     });
   });
 }
 configurarSeletorResponsavelEvento();
 
-function definirResponsavelEventoNoFormulario(nomeSalvo) {
+function definirResponsavelEventoNoFormulario(nomesSalvos) {
   document.querySelectorAll('#modal-evento .opcao-responsavel').forEach(b => b.classList.remove('selecionado'));
   document.getElementById('evento-responsavel-outra').classList.add('oculto');
   document.getElementById('evento-responsavel-outra').value = '';
-  if (nomeSalvo === 'Tami' || nomeSalvo === 'Stefania') {
-    responsavelEventoSelecionado = nomeSalvo;
-    document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${nomeSalvo}"]`).classList.add('selecionado');
-  } else if (nomeSalvo) {
-    responsavelEventoSelecionado = 'Outra';
+  responsaveisEventoSelecionados = new Set();
+
+  const nomes = Array.isArray(nomesSalvos) ? nomesSalvos : (nomesSalvos ? [nomesSalvos] : []);
+  const extras = [];
+  nomes.forEach(nome => {
+    if (nome === 'Tami' || nome === 'Stefania') {
+      responsaveisEventoSelecionados.add(nome);
+      document.querySelector(`#modal-evento .opcao-responsavel[data-valor="${nome}"]`).classList.add('selecionado');
+    } else if (nome) {
+      extras.push(nome);
+    }
+  });
+  if (extras.length) {
     document.querySelector('#modal-evento .opcao-responsavel[data-valor="Outra"]').classList.add('selecionado');
     document.getElementById('evento-responsavel-outra').classList.remove('oculto');
-    document.getElementById('evento-responsavel-outra').value = nomeSalvo;
-  } else {
-    responsavelEventoSelecionado = '';
+    document.getElementById('evento-responsavel-outra').value = extras.join(', ');
   }
 }
 
-function obterNomeResponsavelEventoFinal() {
-  if (responsavelEventoSelecionado === 'Outra') {
-    return document.getElementById('evento-responsavel-outra').value.trim() || null;
-  }
-  return responsavelEventoSelecionado || null;
+function obterNomesResponsaveisEventoFinal() {
+  const nomes = Array.from(responsaveisEventoSelecionados);
+  const extraTexto = document.getElementById('evento-responsavel-outra').value.trim();
+  if (extraTexto) nomes.push(...extraTexto.split(',').map(s => s.trim()).filter(Boolean));
+  return nomes;
 }
 
 async function carregarEventosDoMes() {
@@ -1163,9 +1196,19 @@ function chaveCorProfissional(nome) {
   return 'outra';
 }
 
+function nomesResponsaveisEvento(ev) {
+  if (ev.responsaveis && ev.responsaveis.length) return ev.responsaveis;
+  return ev.responsavel_nome ? [ev.responsavel_nome] : [];
+}
+
+function corPrincipalEvento(ev) {
+  const nomes = nomesResponsaveisEvento(ev);
+  return chaveCorProfissional(nomes[0]);
+}
+
 function renderizarLegendaProfissionais() {
   const nomes = new Set(['Tami', 'Stefania']);
-  eventosCache.forEach(ev => { if (ev.responsavel_nome) nomes.add(ev.responsavel_nome); });
+  eventosCache.forEach(ev => nomesResponsaveisEvento(ev).forEach(nome => nomes.add(nome)));
   const legendaEl = document.getElementById('legenda-tipos');
   legendaEl.innerHTML = Array.from(nomes).map(nome => `
     <div class="legenda-item">
@@ -1233,7 +1276,7 @@ function renderizarCalendario() {
       pontos.className = 'calendario-pontos';
       eventosDoDia.slice(0, 3).forEach(ev => {
         const ponto = document.createElement('span');
-        ponto.className = 'calendario-ponto ponto-prof-' + chaveCorProfissional(ev.responsavel_nome);
+        ponto.className = 'calendario-ponto ponto-prof-' + corPrincipalEvento(ev);
         pontos.appendChild(ponto);
       });
       if (eventosDoDia.length > 3) {
@@ -1275,12 +1318,12 @@ function renderizarPainelDia() {
     const cliente = clientesCacheAgenda.find(c => c.id === ev.cliente_id);
     const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
     const linha = document.createElement('div');
-    linha.className = 'evento-linha evento-linha-prof-' + chaveCorProfissional(ev.responsavel_nome);
+    linha.className = 'evento-linha evento-linha-prof-' + corPrincipalEvento(ev);
     linha.innerHTML = `
       <span class="evento-linha-hora">${hora}</span>
       <div class="evento-linha-corpo">
         <div class="evento-linha-titulo">${escaparHtmlAgenda(ev.titulo)}</div>
-        <div class="evento-linha-info">${cliente ? escaparHtmlAgenda(cliente.nome_noiva) + ' · ' : ''}${ev.responsavel_nome || 'Sem responsável'}${ev.local ? ' · ' + escaparHtmlAgenda(ev.local) : ''}</div>
+        <div class="evento-linha-info">${cliente ? escaparHtmlAgenda(cliente.nome_noiva) + ' · ' : ''}${nomesResponsaveisEvento(ev).join(' e ') || 'Sem responsável'}${ev.local ? ' · ' + escaparHtmlAgenda(ev.local) : ''}</div>
       </div>
     `;
     linha.addEventListener('click', () => abrirModalEvento('editar', ev, diaSelecionado));
@@ -1334,6 +1377,80 @@ document.getElementById('evento-saldo-pago').addEventListener('change', (e) => {
   document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !e.target.checked);
 });
 
+// ---- CLIENTES ADICIONAIS NO MESMO ATENDIMENTO (grupo) ----
+let contadorLinhaParticipante = 0;
+
+function criarLinhaParticipante(participante) {
+  const idx = contadorLinhaParticipante++;
+  const div = document.createElement('div');
+  div.className = 'linha-participante-grupo';
+  if (participante && participante.id) div.dataset.participanteId = participante.id;
+
+  const opcoesClientes = clientesCacheAgenda.map(c => `<option value="${c.id}">${escaparHtmlAgenda(c.nome_noiva)}</option>`).join('');
+  div.innerHTML = `
+    <button type="button" class="botao-remover-participante">×</button>
+    <div class="linha-form">
+      <div class="campo-form">
+        <label>Cliente</label>
+        <select class="participante-cliente">
+          <option value="">Selecione...</option>
+          <option value="__novo__">+ Nova cliente...</option>
+          ${opcoesClientes}
+        </select>
+      </div>
+      <div class="campo-form">
+        <label>Valor cobrado (R$)</label>
+        <input type="number" class="participante-valor" step="0.01" min="0" placeholder="0.00">
+      </div>
+    </div>
+    <div class="oculto bloco-nova-cliente-participante">
+      <div class="linha-form">
+        <div class="campo-form"><input type="text" class="participante-novo-nome" placeholder="Nome da cliente"></div>
+        <div class="campo-form"><input type="text" class="participante-novo-whatsapp" placeholder="WhatsApp"></div>
+      </div>
+    </div>
+    <div class="check-pagamento">
+      <input type="checkbox" class="participante-pago" id="participante-pago-${idx}">
+      <label for="participante-pago-${idx}">Pago</label>
+    </div>
+    <div class="campo-metodo-pagamento oculto participante-metodo-wrap">
+      <select class="participante-metodo">
+        <option value="pix">Pix</option>
+        <option value="transferencia">Transferência</option>
+        <option value="dinheiro">Dinheiro</option>
+        <option value="cartao">Cartão</option>
+      </select>
+    </div>
+  `;
+
+  const seletorCliente = div.querySelector('.participante-cliente');
+  const blocoNovaCliente = div.querySelector('.bloco-nova-cliente-participante');
+  const checkPago = div.querySelector('.participante-pago');
+  const metodoWrap = div.querySelector('.participante-metodo-wrap');
+
+  if (participante) {
+    seletorCliente.value = participante.cliente_id || '';
+    div.querySelector('.participante-valor').value = participante.valor || '';
+    checkPago.checked = !!participante.pago;
+    metodoWrap.classList.toggle('oculto', !participante.pago);
+    div.querySelector('.participante-metodo').value = participante.metodo_pagamento || 'pix';
+  }
+
+  seletorCliente.addEventListener('change', () => {
+    blocoNovaCliente.classList.toggle('oculto', seletorCliente.value !== '__novo__');
+  });
+  checkPago.addEventListener('change', () => {
+    metodoWrap.classList.toggle('oculto', !checkPago.checked);
+  });
+  div.querySelector('.botao-remover-participante').addEventListener('click', () => div.remove());
+
+  return div;
+}
+
+document.getElementById('botao-adicionar-participante').addEventListener('click', () => {
+  document.getElementById('lista-participantes-grupo').appendChild(criarLinhaParticipante(null));
+});
+
 async function abrirModalEvento(modo, evento, diaClicado) {
   formEvento.reset();
   document.getElementById('evento-id').value = '';
@@ -1341,6 +1458,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   document.getElementById('campo-sinal-metodo').classList.add('oculto');
   document.getElementById('campo-saldo-metodo').classList.add('oculto');
   document.getElementById('bloco-nova-cliente-rapida').classList.add('oculto');
+  document.getElementById('lista-participantes-grupo').innerHTML = '';
   eventoEmEdicao = evento;
 
   if (modo === 'novo') {
@@ -1351,7 +1469,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-data').value = chaveData(diaClicado);
     document.getElementById('evento-hora-inicio').value = '10:00';
     document.getElementById('evento-hora-fim').value = '';
-    definirResponsavelEventoNoFormulario('');
+    definirResponsavelEventoNoFormulario([]);
     quantidadesServicoEvento = {};
     document.getElementById('evento-desconto').value = '';
     renderizarChecklistServicosEvento();
@@ -1371,7 +1489,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     }
     document.getElementById('evento-local').value = evento.local || '';
     document.getElementById('evento-observacoes').value = evento.observacoes || '';
-    definirResponsavelEventoNoFormulario(evento.responsavel_nome || '');
+    definirResponsavelEventoNoFormulario(nomesResponsaveisEvento(evento));
 
     quantidadesServicoEvento = {};
     document.getElementById('evento-desconto').value = evento.desconto || '';
@@ -1388,6 +1506,11 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-saldo-pago').checked = !!evento.saldo_pago;
     document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !evento.saldo_pago);
     document.getElementById('evento-saldo-metodo').value = evento.saldo_metodo || 'pix';
+
+    const { data: participantesExistentes } = await supabaseClient
+      .from('evento_participantes').select('*').eq('evento_id', evento.id);
+    const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
+    (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
 
     const clienteDoEvento = clientesCacheAgenda.find(c => c.id === evento.cliente_id);
     const botaoWhats = document.getElementById('botao-whatsapp-evento');
@@ -1451,7 +1574,8 @@ formEvento.addEventListener('submit', async (e) => {
   const valorSinal = Math.round(valorTotal * 0.2 * 100) / 100;
   const sinalPago = document.getElementById('evento-sinal-pago').checked;
   const saldoPago = document.getElementById('evento-saldo-pago').checked;
-  const responsavelNome = obterNomeResponsavelEventoFinal();
+  const responsaveisNomes = obterNomesResponsaveisEventoFinal();
+  const responsavelNome = responsaveisNomes.join(' e ') || null;
 
   if ((sinalPago || saldoPago) && !clienteId) {
     erroEl.textContent = 'Selecione um cliente para registrar pagamento.';
@@ -1469,6 +1593,7 @@ formEvento.addEventListener('submit', async (e) => {
     data_fim: horaFim ? new Date(`${data}T${horaFim}:00`).toISOString() : null,
     local: localInformado,
     responsavel_nome: responsavelNome,
+    responsaveis: responsaveisNomes.length ? responsaveisNomes : null,
     observacoes: document.getElementById('evento-observacoes').value.trim() || null,
     valor_total: valorTotal || null,
     valor_sinal: valorTotal ? valorSinal : null,
@@ -1511,12 +1636,73 @@ formEvento.addEventListener('submit', async (e) => {
     if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorTotal - valorSinal, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
   }
 
+  if (eventoId) await salvarParticipantesGrupo(eventoId, perfil);
+
   modalEvento.classList.add('oculto');
   toast(id ? 'Evento atualizado' : 'Evento adicionado', 'sucesso');
   if (eventoId) sincronizarGoogleCalendar(eventoId, 'salvar');
   await carregarEventosDoMes();
   renderizarCalendario();
 });
+
+// Salva as linhas de "outras clientes no grupo": cria cliente nova quando
+// necessário, grava/atualiza cada evento_participantes, remove as que
+// foram excluídas do formulário e registra pagamento (tipo integral)
+// para as marcadas como pagas.
+async function salvarParticipantesGrupo(eventoId, perfil) {
+  const linhas = Array.from(document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo'));
+  const idsMantidos = [];
+
+  for (const linha of linhas) {
+    let clienteId = linha.querySelector('.participante-cliente').value;
+    const valor = parseFloat(linha.querySelector('.participante-valor').value) || 0;
+    const pago = linha.querySelector('.participante-pago').checked;
+    const metodo = pago ? linha.querySelector('.participante-metodo').value : null;
+
+    if (clienteId === '__novo__') {
+      const nome = linha.querySelector('.participante-novo-nome').value.trim();
+      if (!nome) continue; // linha incompleta, ignora
+      const { data: novaCliente, error: erroNovaCliente } = await supabaseClient.from('clientes').insert({
+        nome_noiva: nome,
+        tipo_cliente: 'social',
+        whatsapp: linha.querySelector('.participante-novo-whatsapp').value.trim() || null,
+        status: 'confirmada',
+        criado_por: perfil ? perfil.id : null,
+      }).select().single();
+      if (erroNovaCliente) continue;
+      clienteId = novaCliente.id;
+      clientesCacheAgenda.push(novaCliente);
+    }
+    if (!clienteId) continue; // nenhuma cliente selecionada, ignora
+
+    const dadosParticipante = { evento_id: eventoId, cliente_id: clienteId, valor, pago, metodo_pagamento: metodo };
+    const participanteIdExistente = linha.dataset.participanteId;
+    let participanteId = participanteIdExistente;
+    if (participanteIdExistente) {
+      await supabaseClient.from('evento_participantes').update(dadosParticipante).eq('id', participanteIdExistente);
+    } else {
+      const { data: novoParticipante } = await supabaseClient.from('evento_participantes').insert(dadosParticipante).select().single();
+      participanteId = novoParticipante ? novoParticipante.id : null;
+    }
+    if (participanteId) idsMantidos.push(participanteId);
+
+    if (pago) {
+      const { data: pagamentoExistente } = await supabaseClient
+        .from('pagamentos').select('id').eq('evento_id', eventoId).eq('cliente_id', clienteId).eq('tipo', 'integral');
+      if (!pagamentoExistente || pagamentoExistente.length === 0) {
+        await supabaseClient.from('pagamentos').insert({
+          cliente_id: clienteId, evento_id: eventoId, tipo: 'integral', valor, metodo, destino: 'negocio',
+          criado_por: perfil ? perfil.id : null,
+        });
+      }
+    }
+  }
+
+  // remove do banco as participantes que não estão mais no formulário
+  let query = supabaseClient.from('evento_participantes').delete().eq('evento_id', eventoId);
+  if (idsMantidos.length) query = query.not('id', 'in', `(${idsMantidos.join(',')})`);
+  await query;
+}
 
 // Espelha o compromisso no Google Calendar do responsável, se ele tiver
 // conectado a integração. Silencioso: se a função ainda não estiver
