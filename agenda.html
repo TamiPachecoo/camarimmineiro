@@ -2053,7 +2053,15 @@ async function abrirModalEvento(modo, evento, diaClicado) {
       document.getElementById('evento-valor-sinal-profissional').value = Number(evento.valor_sinal_profissional).toFixed(2);
       sinalProfissionalEditadoManualmente = true;
     }
-    if (evento.valor_total != null) {
+    if (evento.valor_saldo != null) {
+      // Saldo salvo de propósito (pode ter sido ajustado à mão — por
+      // exemplo, num atendimento de grupo, onde o total é da turma
+      // toda mas o saldo da cliente principal é só a parte dela).
+      document.getElementById('evento-valor-saldo').value = Number(evento.valor_saldo).toFixed(2);
+      saldoEditadoManualmente = true;
+    } else if (evento.valor_total != null) {
+      // Compromisso salvo antes do saldo passar a ser persistido —
+      // melhor aproximação possível: total menos os sinais.
       document.getElementById('evento-valor-saldo').value = Math.max(0, Number(evento.valor_total) - Number(evento.valor_sinal || 0) - Number(evento.valor_sinal_profissional || 0)).toFixed(2);
       saldoEditadoManualmente = true;
     }
@@ -2170,6 +2178,7 @@ formEvento.addEventListener('submit', async (e) => {
     valor_total: valorTotal || null,
     valor_sinal: valorSinal || null,
     valor_sinal_profissional: valorSinalProfissional || null,
+    valor_saldo: valorSaldo || null,
     desconto: desconto || 0,
     sinal_pago: sinalPago,
     sinal_metodo: sinalPago ? document.getElementById('evento-sinal-metodo').value : null,

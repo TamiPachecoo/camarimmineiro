@@ -930,7 +930,7 @@ async function carregarProjecaoMes() {
 
   const { data: eventos, error } = await supabaseClient
     .from('eventos_calendario')
-    .select('id, responsaveis, valor_total, valor_sinal, valor_sinal_profissional')
+    .select('id, responsaveis, valor_total, valor_sinal, valor_sinal_profissional, valor_saldo')
     .gte('data_inicio', inicioMes.toISOString())
     .lte('data_inicio', fimMes.toISOString());
 
@@ -970,7 +970,7 @@ async function carregarProjecaoMes() {
     const total = Number(ev.valor_total) || 0;
     const sinal = Number(ev.valor_sinal) || 0;
     const sinalProf = Number(ev.valor_sinal_profissional) || 0;
-    const saldoPrincipal = Math.max(0, total - sinal - sinalProf);
+    const saldoPrincipal = ev.valor_saldo != null ? Number(ev.valor_saldo) : Math.max(0, total - sinal - sinalProf);
     let potEvento = sinalProf + saldoPrincipal;
     (participantesPorEvento[ev.id] || []).forEach(p => {
       potEvento += (Number(p.valor_sinal_profissional) || 0) + (Number(p.valor_saldo) || 0);
