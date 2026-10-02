@@ -495,6 +495,40 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .cartao-resumo .valor { font-family: 'DM Mono', monospace; font-size: 1.5rem; font-weight: 500; color: var(--ink); }
 .cartao-resumo.negocio .valor { color: var(--teal-deep); }
 .cartao-resumo.profissional .valor { color: #96702F; }
+.cartao-resumo.despesa .valor { color: var(--red); }
+.cartao-resumo.repasse .valor { color: #96702F; }
+.cartao-resumo.pendente .valor { color: var(--gold); }
+.cartao-resumo.lucro { background: var(--teal-dim); border-color: var(--teal); }
+.cartao-resumo.lucro .valor { color: var(--teal-deep); font-size: 1.7rem; }
+.cartao-resumo.lucro.negativo { background: var(--red-dim); border-color: var(--red); }
+.cartao-resumo.lucro.negativo .valor { color: var(--red); }
+
+.secao-financeiro-titulo { font-size: 1.4rem; margin: 2.2rem 0 0.3rem; }
+.secao-financeiro-titulo:first-of-type { margin-top: 0; }
+
+.linha-form-despesa { display: flex; gap: 0.8rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1.2rem; }
+.linha-form-despesa .campo-form { flex: 1; min-width: 130px; }
+@media (max-width: 640px) { .linha-form-despesa { flex-direction: column; align-items: stretch; } }
+
+.repasse-linha {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.85rem 1.1rem; margin-bottom: 0.7rem;
+}
+.repasse-linha.pago { opacity: 0.6; }
+.repasse-linha-info { min-width: 0; }
+.repasse-linha-titulo { font-size: 0.9rem; color: var(--ink); font-weight: 500; }
+.repasse-linha-detalhe { font-size: 0.76rem; color: var(--ink2); margin-top: 0.15rem; }
+.repasse-linha-acao { display: flex; align-items: center; gap: 0.8rem; flex-shrink: 0; }
+.repasse-linha-valor { font-family: 'DM Mono', monospace; font-weight: 600; color: #96702F; }
+.botao-marcar-pago {
+  padding: 0.5rem 0.9rem; border-radius: var(--radius-sm); border: 1px solid var(--teal);
+  background: var(--teal-dim); color: var(--teal-deep); font-size: 0.78rem; font-weight: 600; cursor: pointer;
+}
+.botao-marcar-pago:hover { background: var(--teal); color: var(--white); }
+.etiqueta-pago { font-size: 0.72rem; font-weight: 600; color: var(--teal-deep); background: var(--teal-dim); padding: 0.25rem 0.6rem; border-radius: 999px; }
+.botao-excluir-linha { background: none; border: none; color: var(--ink3); cursor: pointer; font-size: 1rem; padding: 0.2rem 0.5rem; }
+.botao-excluir-linha:hover { color: var(--red); }
 
 .grafico-container {
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
@@ -649,6 +683,9 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
     </p>
   </div>
 
+  <h2 class="secao-financeiro-titulo">📊 Visão geral da empresa</h2>
+  <p class="subtitulo" style="margin-top:-0.3rem">O lucro de verdade do negócio — recebido menos despesas e repasses já pagos às profissionais. Separado de propósito do Faturamento MEI acima, que é só pra declaração anual e não desconta despesa nenhuma.</p>
+
   <div class="filtro-periodo-financeiro">
     <div class="campo-form">
       <label for="financeiro-data-inicio">De</label>
@@ -667,11 +704,25 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
   <div class="cartoes-resumo">
     <div class="cartao-resumo negocio">
-      <div class="rotulo">Recebido pelo negócio</div>
+      <div class="rotulo">Recebido pela empresa</div>
       <div class="valor" id="valor-total-negocio">R$ 0.00</div>
     </div>
+    <div class="cartao-resumo despesa">
+      <div class="rotulo">Despesas</div>
+      <div class="valor" id="valor-total-despesas">R$ 0.00</div>
+    </div>
+    <div class="cartao-resumo repasse">
+      <div class="rotulo">Repasses pagos às profissionais</div>
+      <div class="valor" id="valor-total-repasses-pagos">R$ 0.00</div>
+    </div>
+    <div class="cartao-resumo lucro">
+      <div class="rotulo">Lucro líquido</div>
+      <div class="valor" id="valor-lucro-liquido">R$ 0.00</div>
+    </div>
+  </div>
+  <div class="cartoes-resumo" style="margin-top:0.9rem">
     <div class="cartao-resumo profissional">
-      <div class="rotulo">Pago às profissionais</div>
+      <div class="rotulo">Pago direto às profissionais <span class="rotulo-dica">(sem passar pela empresa)</span></div>
       <div class="valor" id="valor-total-profissionais">R$ 0.00</div>
     </div>
     <div class="cartao-resumo">
@@ -701,6 +752,67 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       </tbody>
     </table>
   </div>
+
+  <hr class="secao-divisoria">
+
+  <h2 class="secao-financeiro-titulo">💸 Despesas</h2>
+  <p class="subtitulo" style="margin-top:-0.3rem">Produtos, deslocamento, assistente freelancer avulsa, equipamento, marketing e outros custos — pra entrar na conta do lucro líquido acima (não entra no cálculo do MEI).</p>
+
+  <form id="form-despesa" class="linha-form-despesa">
+    <div class="campo-form">
+      <label for="despesa-data">Data</label>
+      <input type="date" id="despesa-data" required>
+    </div>
+    <div class="campo-form">
+      <label for="despesa-categoria">Categoria</label>
+      <select id="despesa-categoria">
+        <option value="produtos">Produtos</option>
+        <option value="deslocamento">Deslocamento</option>
+        <option value="assistente">Assistente freelancer</option>
+        <option value="equipamento">Equipamento</option>
+        <option value="marketing">Marketing</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div class="campo-form">
+      <label for="despesa-valor">Valor (R$)</label>
+      <input type="number" id="despesa-valor" step="0.01" min="0" required>
+    </div>
+    <div class="campo-form" style="flex:2">
+      <label for="despesa-observacoes">Descrição <span class="rotulo-dica">(opcional)</span></label>
+      <input type="text" id="despesa-observacoes" placeholder="Ex: Base facial, Uber pro atendimento...">
+    </div>
+    <button type="submit" class="botao-principal botao-pequeno" style="margin-top:0; flex-shrink:0">+ Adicionar</button>
+  </form>
+
+  <div style="overflow-x:auto">
+    <table class="tabela-pagamentos">
+      <thead>
+        <tr><th>Data</th><th>Categoria</th><th>Descrição</th><th style="text-align:right">Valor</th><th></th></tr>
+      </thead>
+      <tbody id="corpo-tabela-despesas">
+        <tr><td colspan="5" style="padding:1.5rem; text-align:center; color:var(--ink2)">Carregando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <hr class="secao-divisoria">
+
+  <h2 class="secao-financeiro-titulo">🤝 Repasses às profissionais</h2>
+  <p class="subtitulo" style="margin-top:-0.3rem">Quando o dinheiro de um atendimento entra pela empresa (grupo, diária, noiva), este é o controle de quanto já foi transferido pra cada profissional e quanto ainda falta.</p>
+
+  <div class="cartoes-resumo" style="margin-bottom:1.2rem">
+    <div class="cartao-resumo repasse">
+      <div class="rotulo">Já repassado</div>
+      <div class="valor" id="repasse-total-pago">R$ 0.00</div>
+    </div>
+    <div class="cartao-resumo pendente">
+      <div class="rotulo">Ainda falta repassar</div>
+      <div class="valor" id="repasse-total-pendente">R$ 0.00</div>
+    </div>
+  </div>
+
+  <div id="lista-repasses"></div>
 
   <hr class="secao-divisoria">
 
@@ -958,6 +1070,8 @@ document.getElementById('botao-excluir-servico').addEventListener('click', async
 // ============================================================
 
 let pagamentosFiltrados = [];
+let despesasNoPeriodo = [];
+let repassesPagosNoPeriodo = [];
 let graficoMensal = null;
 
 function definirPeriodoPadrao() {
@@ -1099,6 +1213,18 @@ async function carregarResumoFinanceiro() {
   if (error) { toast('Erro ao carregar dados financeiros', 'erro'); return; }
   pagamentosFiltrados = data || [];
 
+  const { data: despesasData } = await supabaseClient
+    .from('despesas').select('*')
+    .gte('data_despesa', inicio).lte('data_despesa', fim)
+    .order('data_despesa', { ascending: false });
+  despesasNoPeriodo = despesasData || [];
+
+  const { data: repassesData } = await supabaseClient
+    .from('evento_profissionais_valores').select('valor')
+    .eq('pago', true)
+    .gte('data_pagamento', inicio).lte('data_pagamento', fim);
+  repassesPagosNoPeriodo = repassesData || [];
+
   renderizarResumo();
   renderizarTabelaPagamentos();
   await renderizarGraficoMensal();
@@ -1116,6 +1242,16 @@ function renderizarResumo() {
       porProfissional[nome] = (porProfissional[nome] || 0) + Number(p.valor);
     }
   });
+
+  const totalDespesas = despesasNoPeriodo.reduce((soma, d) => soma + Number(d.valor), 0);
+  const totalRepassesPagos = repassesPagosNoPeriodo.reduce((soma, r) => soma + Number(r.valor), 0);
+  const lucroLiquido = totalNegocio - totalDespesas - totalRepassesPagos;
+
+  document.getElementById('valor-total-despesas').textContent = `R$ ${totalDespesas.toFixed(2)}`;
+  document.getElementById('valor-total-repasses-pagos').textContent = `R$ ${totalRepassesPagos.toFixed(2)}`;
+  const cartaoLucroEl = document.getElementById('valor-lucro-liquido');
+  cartaoLucroEl.textContent = `R$ ${lucroLiquido.toFixed(2)}`;
+  cartaoLucroEl.closest('.cartao-resumo').classList.toggle('negativo', lucroLiquido < 0);
 
   document.getElementById('valor-total-negocio').textContent = `R$ ${totalNegocio.toFixed(2)}`;
   document.getElementById('valor-total-profissionais').textContent = `R$ ${totalProfissional.toFixed(2)}`;
@@ -1150,6 +1286,137 @@ function renderizarTabelaPagamentos() {
       <td>${p.metodo || '—'}</td>
       <td style="text-align:right; font-family:'DM Mono',monospace">R$ ${Number(p.valor).toFixed(2)}</td>
     </tr>`).join('');
+}
+
+// ============================================================
+// DESPESAS — custos da empresa, separados do MEI (que é valor fixo e
+// não desconta despesa nenhuma). Entram no cálculo do lucro líquido
+// acima.
+// ============================================================
+let despesasCache = [];
+const ROTULOS_CATEGORIA_DESPESA = {
+  produtos: 'Produtos', deslocamento: 'Deslocamento', assistente: 'Assistente freelancer',
+  equipamento: 'Equipamento', marketing: 'Marketing', outro: 'Outro',
+};
+
+async function carregarTodasDespesas() {
+  const { data, error } = await supabaseClient.from('despesas').select('*').order('data_despesa', { ascending: false });
+  if (error) { toast('Erro ao carregar despesas', 'erro'); return; }
+  despesasCache = data || [];
+  renderizarTabelaDespesas();
+}
+
+function renderizarTabelaDespesas() {
+  const corpo = document.getElementById('corpo-tabela-despesas');
+  if (!despesasCache.length) {
+    corpo.innerHTML = '<tr><td colspan="5" style="padding:1.5rem; text-align:center; color:var(--ink2)">Nenhuma despesa lançada ainda.</td></tr>';
+    return;
+  }
+  corpo.innerHTML = despesasCache.map(d => `
+    <tr>
+      <td>${new Date(d.data_despesa + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+      <td>${ROTULOS_CATEGORIA_DESPESA[d.categoria] || d.categoria}</td>
+      <td>${d.observacoes ? escaparHtmlServico(d.observacoes) : '—'}</td>
+      <td style="text-align:right; font-family:'DM Mono',monospace">R$ ${Number(d.valor).toFixed(2)}</td>
+      <td><button type="button" class="botao-excluir-linha" data-id="${d.id}" title="Excluir">×</button></td>
+    </tr>`).join('');
+
+  corpo.querySelectorAll('.botao-excluir-linha').forEach(botao => {
+    botao.addEventListener('click', async () => {
+      if (!confirm('Excluir esta despesa?')) return;
+      const { error } = await supabaseClient.from('despesas').delete().eq('id', botao.dataset.id);
+      if (error) { toast('Erro ao excluir: ' + error.message, 'erro'); return; }
+      toast('Despesa excluída', 'sucesso');
+      await carregarTodasDespesas();
+      await carregarResumoFinanceiro();
+    });
+  });
+}
+
+document.getElementById('form-despesa').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const perfil = getPerfilAtivo();
+  const dados = {
+    data_despesa: document.getElementById('despesa-data').value,
+    categoria: document.getElementById('despesa-categoria').value,
+    valor: parseFloat(document.getElementById('despesa-valor').value) || 0,
+    observacoes: document.getElementById('despesa-observacoes').value.trim() || null,
+    criado_por: perfil ? perfil.id : null,
+  };
+  if (!dados.data_despesa || dados.valor <= 0) { toast('Preencha data e valor.', 'erro'); return; }
+  const { error } = await supabaseClient.from('despesas').insert(dados);
+  if (error) { toast('Erro ao salvar: ' + error.message, 'erro'); return; }
+  document.getElementById('form-despesa').reset();
+  document.getElementById('despesa-data').value = chaveDataFinanceiro(new Date());
+  toast('Despesa adicionada', 'sucesso');
+  await carregarTodasDespesas();
+  await carregarResumoFinanceiro();
+});
+
+// ============================================================
+// REPASSES ÀS PROFISSIONAIS — quando o dinheiro de um atendimento
+// (grupo/diária/noiva) entra pela conta da empresa, este é o
+// controle de quanto já foi transferido pra cada profissional e
+// quanto ainda falta. Só aparecem aqui compromissos marcados como
+// "saldo recebido pela empresa" na agenda — atendimento social avulso
+// (saldo direto pra profissional) não gera repasse nenhum.
+// ============================================================
+let repassesCache = [];
+
+async function carregarRepasses() {
+  const { data, error } = await supabaseClient
+    .from('evento_profissionais_valores')
+    .select('*, eventos_calendario(titulo, data_inicio, saldo_direto_profissional)')
+    .order('criado_em', { ascending: false });
+  if (error) { toast('Erro ao carregar repasses', 'erro'); return; }
+  repassesCache = (data || []).filter(r => r.eventos_calendario && r.eventos_calendario.saldo_direto_profissional === false);
+  renderizarRepasses();
+}
+
+function renderizarRepasses() {
+  const listaEl = document.getElementById('lista-repasses');
+
+  let totalPago = 0, totalPendente = 0;
+  repassesCache.forEach(r => { if (r.pago) totalPago += Number(r.valor); else totalPendente += Number(r.valor); });
+  document.getElementById('repasse-total-pago').textContent = `R$ ${totalPago.toFixed(2)}`;
+  document.getElementById('repasse-total-pendente').textContent = `R$ ${totalPendente.toFixed(2)}`;
+
+  if (!repassesCache.length) {
+    listaEl.innerHTML = '<p class="subtitulo" style="margin:0">Nenhum repasse ainda — aparece aqui quando um compromisso de grupo, diária ou noiva (com saldo recebido pela empresa) é salvo na agenda.</p>';
+    return;
+  }
+
+  const ordenados = [...repassesCache].sort((a, b) => (a.pago === b.pago) ? 0 : (a.pago ? 1 : -1));
+  listaEl.innerHTML = '';
+  ordenados.forEach(r => {
+    const ev = r.eventos_calendario;
+    const dataFmt = ev && ev.data_inicio ? new Date(ev.data_inicio).toLocaleDateString('pt-BR') : '—';
+    const div = document.createElement('div');
+    div.className = 'repasse-linha' + (r.pago ? ' pago' : '');
+    div.innerHTML = `
+      <div class="repasse-linha-info">
+        <div class="repasse-linha-titulo">${escaparHtmlServico(r.profissional_nome)} — ${ev ? escaparHtmlServico(ev.titulo) : 'Compromisso'}</div>
+        <div class="repasse-linha-detalhe">${dataFmt}${r.pago && r.data_pagamento ? ` · repassado em ${new Date(r.data_pagamento + 'T12:00:00').toLocaleDateString('pt-BR')}` : ''}</div>
+      </div>
+      <div class="repasse-linha-acao">
+        <span class="repasse-linha-valor">R$ ${Number(r.valor).toFixed(2)}</span>
+        ${r.pago ? '<span class="etiqueta-pago">✓ Repassado</span>' : `<button type="button" class="botao-marcar-pago" data-id="${r.id}">Marcar como repassado</button>`}
+      </div>
+    `;
+    listaEl.appendChild(div);
+  });
+
+  listaEl.querySelectorAll('.botao-marcar-pago').forEach(botao => {
+    botao.addEventListener('click', async () => {
+      const { error } = await supabaseClient.from('evento_profissionais_valores')
+        .update({ pago: true, data_pagamento: chaveDataFinanceiro(new Date()) })
+        .eq('id', botao.dataset.id);
+      if (error) { toast('Erro ao marcar: ' + error.message, 'erro'); return; }
+      toast('Repasse marcado como feito', 'sucesso');
+      await carregarRepasses();
+      await carregarResumoFinanceiro();
+    });
+  });
 }
 
 async function renderizarGraficoMensal() {
@@ -1397,12 +1664,15 @@ document.getElementById('botao-exportar-mei').addEventListener('click', exportar
   const ok = await protegerRota();
   if (ok) {
     definirPeriodoPadrao();
+    document.getElementById('despesa-data').value = chaveDataFinanceiro(new Date());
     await carregarProjecaoMes();
     preencherSeletorAnoMei();
     await carregarFaturamentoMEI();
     await carregarServicos();
     await carregarListaProfissionais();
     await carregarResumoFinanceiro();
+    await carregarTodasDespesas();
+    await carregarRepasses();
   }
 })();
 
