@@ -933,6 +933,12 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
             <option value="cartao">Cartão</option>
           </select>
         </div>
+
+        <div class="check-pagamento" style="margin-top:0.6rem">
+          <input type="checkbox" id="evento-saldo-direto-profissional" checked>
+          <label for="evento-saldo-direto-profissional">Saldo recebido direto pela profissional <span class="rotulo-dica">(sem passar pela conta da empresa)</span></label>
+        </div>
+        <p class="aviso-grupo oculto" id="aviso-saldo-via-empresa">💼 Desmarcado: em atendimentos de grupo, diária ou noiva, o saldo normalmente entra pela conta da empresa e é repassado depois — ajuste aqui se for diferente.</p>
       </div>
 
       <div class="secao-grupo">
@@ -2030,6 +2036,32 @@ function atualizarAvisoGrupo() {
   if (aviso) aviso.classList.toggle('oculto', !haParticipantesNoGrupo());
 }
 
+// Em quem recai o saldo (dinheiro do dia): direto na conta da
+// profissional (atendimento social avulso — como já era) ou primeiro
+// na conta da empresa, que repassa depois (grupo, diária, noiva).
+// "Diária" não tem um campo próprio pra identificar, então sugere pelo
+// tipo/participantes mas deixa sempre editável à mão.
+let saldoDiretoProfissionalEditadoManualmente = false;
+
+function sugerirSaldoDiretoProfissional() {
+  if (saldoDiretoProfissionalEditadoManualmente) return;
+  const tipo = document.getElementById('evento-tipo').value;
+  const viaEmpresa = haParticipantesNoGrupo() || tipo === 'prova' || tipo === 'dia_casamento';
+  document.getElementById('evento-saldo-direto-profissional').checked = !viaEmpresa;
+  atualizarAvisoSaldoViaEmpresa();
+}
+
+function atualizarAvisoSaldoViaEmpresa() {
+  const direto = document.getElementById('evento-saldo-direto-profissional').checked;
+  document.getElementById('aviso-saldo-via-empresa').classList.toggle('oculto', direto);
+}
+
+document.getElementById('evento-saldo-direto-profissional').addEventListener('change', () => {
+  saldoDiretoProfissionalEditadoManualmente = true;
+  atualizarAvisoSaldoViaEmpresa();
+});
+document.getElementById('evento-tipo').addEventListener('change', sugerirSaldoDiretoProfissional);
+
 function recalcularSaldoAutomatico() {
   if (saldoEditadoManualmente || haParticipantesNoGrupo()) return;
   const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
@@ -2050,6 +2082,7 @@ function calcularSinal() {
   atualizarResumoFinanceiro();
   atualizarStatusDivisaoProfissionais();
   atualizarAvisoGrupo();
+  sugerirSaldoDiretoProfissional();
   return parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
@@ -2338,6 +2371,7 @@ function criarLinhaParticipante(participante) {
     atualizarResumoFinanceiro();
     atualizarStatusDivisaoProfissionais();
     atualizarAvisoGrupo();
+    sugerirSaldoDiretoProfissional();
   });
 
   return div;
@@ -2348,6 +2382,7 @@ document.getElementById('botao-adicionar-participante').addEventListener('click'
   atualizarResumoFinanceiro();
   atualizarStatusDivisaoProfissionais();
   atualizarAvisoGrupo();
+  sugerirSaldoDiretoProfissional();
 });
 
 async function abrirModalEvento(modo, evento, diaClicado) {
@@ -2365,6 +2400,8 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   sinalEditadoManualmente = false;
   sinalProfissionalEditadoManualmente = false;
   saldoEditadoManualmente = false;
+  saldoDiretoProfissionalEditadoManualmente = false;
+  document.getElementById('evento-saldo-direto-profissional').checked = true;
   valoresDivisaoProfissionais = {};
   eventoEmEdicao = evento;
 
@@ -2418,6 +2455,9 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     });
     renderizarChecklistServicosEvento();
     calcularSinal();
+    document.getElementById('evento-saldo-direto-profissional').checked = evento.saldo_direto_profissional !== false;
+    saldoDiretoProfissionalEditadoManualmente = true;
+    atualizarAvisoSaldoViaEmpresa();
     if (evento.valor_sinal != null) {
       document.getElementById('evento-valor-sinal').value = Number(evento.valor_sinal).toFixed(2);
       sinalEditadoManualmente = true;
@@ -2557,6 +2597,7 @@ formEvento.addEventListener('submit', async (e) => {
     sinal_profissional_metodo: sinalProfissionalPago ? document.getElementById('evento-sinal-profissional-metodo').value : null,
     saldo_pago: saldoPago,
     saldo_metodo: saldoPago ? document.getElementById('evento-saldo-metodo').value : null,
+    saldo_direto_profissional: document.getElementById('evento-saldo-direto-profissional').checked,
   };
 
   let resultado, eventoId;
@@ -2585,13 +2626,18 @@ formEvento.addEventListener('submit', async (e) => {
     }
   }
 
-  // registrar pagamentos — três vias: sinal → negócio, sinal → profissional, saldo → profissional
+  // registrar pagamentos. Sinal (negócio e profissional) é dinheiro
+  // adiantado — sempre entra pela conta da empresa. O saldo (dinheiro
+  // do dia) só vai direto pra profissional em atendimento social
+  // avulso; em grupo/diária/noiva, passa pela empresa também (ver
+  // "Saldo recebido direto pela profissional" no formulário).
+  const saldoDestino = document.getElementById('evento-saldo-direto-profissional').checked ? 'profissional' : 'negocio';
   if (eventoId && clienteId) {
     if (sinalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal', valorSinal, document.getElementById('evento-sinal-metodo').value, 'negocio', null, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'sinal');
-    if (sinalProfissionalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal_profissional', valorSinalProfissional, document.getElementById('evento-sinal-profissional-metodo').value, 'profissional', responsavelNome, perfil);
+    if (sinalProfissionalPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'sinal_profissional', valorSinalProfissional, document.getElementById('evento-sinal-profissional-metodo').value, 'negocio', responsavelNome, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'sinal_profissional');
-    if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorSaldo, document.getElementById('evento-saldo-metodo').value, 'profissional', responsavelNome, perfil);
+    if (saldoPago) await registrarPagamentoSeNecessario(eventoId, clienteId, 'saldo_final', valorSaldo, document.getElementById('evento-saldo-metodo').value, saldoDestino, responsavelNome, perfil);
     else await supabaseClient.from('pagamentos').delete().eq('evento_id', eventoId).eq('tipo', 'saldo_final');
   }
 
@@ -2614,12 +2660,12 @@ formEvento.addEventListener('submit', async (e) => {
 // específica dentro de um evento em grupo — diferente de
 // registrarPagamentoSeNecessario, filtra também por cliente_id, já que
 // várias clientes do mesmo evento têm pagamentos independentes.
-async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, valor, metodo, perfil) {
-  // Mesma regra do pagamento da cliente principal: só o sinal fica com
-  // o negócio — sinal-profissional e saldo-final vão direto pra conta
-  // da profissional. Isso era fixo em 'negocio' pra tudo, o que inflava
-  // o faturamento da empresa com dinheiro que nem passa pela MEI.
-  const destino = tipo === 'sinal' ? 'negocio' : 'profissional';
+async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, valor, metodo, perfil, saldoDestino) {
+  // Mesma regra do pagamento da cliente principal: sinal (negócio e
+  // profissional) é adiantado, sempre fica com a empresa; saldo segue
+  // o "Saldo recebido direto pela profissional" do compromisso — em
+  // grupo, normalmente é 'negocio' (passa pela empresa e é repassado).
+  const destino = tipo === 'saldo_final' ? saldoDestino : 'negocio';
   const { data: existentes } = await supabaseClient
     .from('pagamentos').select('id').eq('evento_id', eventoId).eq('cliente_id', clienteId).eq('tipo', tipo);
   if (!pago) {
@@ -2639,6 +2685,10 @@ async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, v
 async function salvarParticipantesGrupo(eventoId, perfil) {
   const { data: participantesAntigos } = await supabaseClient
     .from('evento_participantes').select('id, cliente_id').eq('evento_id', eventoId);
+
+  // Mesmo critério do saldo da cliente principal — o atendimento é um
+  // só, então vale pra todo mundo do grupo igual.
+  const saldoDestino = document.getElementById('evento-saldo-direto-profissional').checked ? 'profissional' : 'negocio';
 
   const linhas = Array.from(document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo'));
   const idsMantidos = [];
@@ -2689,9 +2739,9 @@ async function salvarParticipantesGrupo(eventoId, perfil) {
     }
     if (participanteId) idsMantidos.push(participanteId);
 
-    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal', sinalPago, valorSinal, sinalMetodo, perfil);
-    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal_profissional', sinalProfissionalPago, valorSinalProfissional, sinalProfissionalMetodo, perfil);
-    await registrarPagamentoParticipante(eventoId, clienteId, 'saldo_final', saldoPago, valorSaldo, saldoMetodo, perfil);
+    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal', sinalPago, valorSinal, sinalMetodo, perfil, saldoDestino);
+    await registrarPagamentoParticipante(eventoId, clienteId, 'sinal_profissional', sinalProfissionalPago, valorSinalProfissional, sinalProfissionalMetodo, perfil, saldoDestino);
+    await registrarPagamentoParticipante(eventoId, clienteId, 'saldo_final', saldoPago, valorSaldo, saldoMetodo, perfil, saldoDestino);
     clientesProcessados.push(clienteId);
   }
 
