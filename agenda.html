@@ -470,6 +470,8 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .calendario-pontos { display: flex; gap: 3px; height: 6px; align-items: center; }
 .calendario-ponto { width: 6px; height: 6px; border-radius: 50%; }
 .calendario-ponto-mais { font-size: 0.55rem; color: var(--ink3); line-height: 1; }
+.calendario-bloqueios { display: flex; gap: 2px; margin-top: 2px; justify-content: center; }
+.calendario-bloqueio-tag { width: 12px; height: 3px; border-radius: 2px; opacity: 0.85; }
 
 /* cores por profissional */
 :root {
@@ -506,6 +508,25 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .evento-linha-corpo { flex: 1; min-width: 0; }
 .evento-linha-titulo { font-size: 0.92rem; color: var(--ink); }
 .evento-linha-info { font-size: 0.76rem; color: var(--ink2); margin-top: 0.15rem; }
+
+.bloqueio-linha {
+  display: flex; align-items: flex-start; gap: 0.7rem;
+  background: var(--surface2); border: 1px dashed var(--ink3);
+  border-radius: var(--radius-sm); padding: 0.7rem 1rem; cursor: pointer;
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.bloqueio-linha:hover { box-shadow: var(--shadow); border-color: var(--ink2); }
+.bloqueio-linha-icone { font-size: 0.95rem; line-height: 1.4; }
+.bloqueio-linha-corpo { flex: 1; min-width: 0; }
+.bloqueio-linha-titulo { font-size: 0.88rem; color: var(--ink); font-weight: 600; }
+.bloqueio-linha-info { font-size: 0.78rem; color: var(--ink2); margin-top: 0.15rem; }
+
+.botao-bloquear-dia {
+  padding: 0.68rem 1.1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);
+  background: var(--surface); color: var(--ink2); font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all var(--transition);
+}
+.botao-bloquear-dia:hover { border-color: var(--red); color: var(--red); }
 
 @media (max-width: 480px) {
   .calendario-numero-dia { font-size: 0.78rem; width: 24px; height: 24px; }
@@ -737,7 +758,10 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   <div class="painel-dia" id="painel-dia">
     <div class="painel-dia-cabecalho">
       <h2 id="painel-dia-titulo">—</h2>
-      <button type="button" class="botao-pequeno botao-principal" id="botao-adicionar-no-dia">+ Adicionar</button>
+      <div style="display:flex; gap:0.5rem;">
+        <button type="button" class="botao-bloquear-dia" id="botao-bloquear-dia">🚫 Bloquear</button>
+        <button type="button" class="botao-pequeno botao-principal" id="botao-adicionar-no-dia">+ Adicionar</button>
+      </div>
     </div>
     <div class="painel-dia-lista" id="painel-dia-lista"></div>
   </div>
@@ -943,6 +967,56 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
         <button type="submit" class="botao-principal">Salvar</button>
       </div>
       <p class="erro" id="erro-evento"></p>
+    </form>
+  </div>
+</div>
+
+<div class="modal-fundo oculto" id="modal-bloqueio">
+  <div class="modal-caixa" style="max-width:420px;">
+    <div class="modal-cabecalho">
+      <h2 id="modal-bloqueio-titulo">Bloquear dia</h2>
+      <button class="botao-fechar" id="botao-fechar-modal-bloqueio">×</button>
+    </div>
+    <form id="form-bloqueio">
+      <input type="hidden" id="bloqueio-id">
+      <label for="bloqueio-perfil">Quem vai ficar indisponível</label>
+      <select id="bloqueio-perfil" required></select>
+
+      <label for="bloqueio-data-inicio">Data</label>
+      <input type="date" id="bloqueio-data-inicio" required>
+
+      <div class="check-pagamento" style="margin-top:0.9rem">
+        <input type="checkbox" id="bloqueio-varios-dias">
+        <label for="bloqueio-varios-dias">Vários dias seguidos (ex: viagem)</label>
+      </div>
+      <div class="campo-form oculto" id="bloqueio-campo-data-fim">
+        <label for="bloqueio-data-fim">Até</label>
+        <input type="date" id="bloqueio-data-fim">
+      </div>
+
+      <div class="check-pagamento" style="margin-top:0.9rem">
+        <input type="checkbox" id="bloqueio-dia-inteiro" checked>
+        <label for="bloqueio-dia-inteiro">Dia inteiro</label>
+      </div>
+      <div class="linha-form oculto" id="bloqueio-campo-horarios">
+        <div class="campo-form">
+          <label for="bloqueio-hora-inicio">Das</label>
+          <input type="time" id="bloqueio-hora-inicio">
+        </div>
+        <div class="campo-form">
+          <label for="bloqueio-hora-fim">Até</label>
+          <input type="time" id="bloqueio-hora-fim">
+        </div>
+      </div>
+
+      <label for="bloqueio-motivo">Motivo <span class="rotulo-dica">(opcional, só pra referência interna)</span></label>
+      <input type="text" id="bloqueio-motivo" placeholder="Ex: Viagem, consulta, folga">
+
+      <div class="modal-rodape">
+        <button type="button" class="botao-texto oculto" id="botao-excluir-bloqueio">Excluir</button>
+        <button type="submit" class="botao-principal">Salvar</button>
+      </div>
+      <p class="erro" id="erro-bloqueio"></p>
     </form>
   </div>
 </div>
@@ -1180,6 +1254,14 @@ async function verificarDisponibilidade() {
   if (idAtual) query = query.neq('id', idAtual);
   const { data: conflitosInternos } = await query;
 
+  // 1b) alguém do time bloqueou esse dia/horário como indisponível
+  const { data: conflitosBloqueio } = await supabaseClient
+    .from('bloqueios_agenda')
+    .select('perfis(nome)')
+    .lt('data_inicio', fimISO)
+    .gt('data_fim', inicioISO);
+  const nomesBloqueados = Array.from(new Set((conflitosBloqueio || []).map(b => b.perfis ? b.perfis.nome : null).filter(Boolean)));
+
   // 2) horários ocupados no Google Calendar de cada perfil conectado
   let ocupadosGoogle = {};
   try {
@@ -1199,9 +1281,10 @@ async function verificarDisponibilidade() {
 
   const temConflitoGoogle = Object.values(ocupadosGoogle).some(blocos => blocos && blocos.length > 0);
 
-  if ((conflitosInternos && conflitosInternos.length) || temConflitoGoogle) {
+  if ((conflitosInternos && conflitosInternos.length) || nomesBloqueados.length || temConflitoGoogle) {
     const partes = [];
     if (conflitosInternos && conflitosInternos.length) partes.push(`${conflitosInternos.length} compromisso(s) na agenda`);
+    if (nomesBloqueados.length) partes.push(`${nomesBloqueados.join(' e ')} indisponível`);
     if (temConflitoGoogle) partes.push('conflito no Google Calendar de alguém do time');
     resultadoEl.textContent = `⚠️ Não está livre: ${partes.join(' e ')}.`;
     resultadoEl.style.color = 'var(--red)';
@@ -1529,6 +1612,41 @@ async function carregarEventosDoMes() {
   eventosCache = data;
 }
 
+// ---- BLOQUEIOS DE DISPONIBILIDADE (dias/horários que Tami ou Stefania
+// marcaram como indisponíveis) — ambas veem os bloqueios uma da outra. ----
+let bloqueiosCache = [];
+
+async function carregarBloqueiosDoMes() {
+  const inicio = new Date(mesAtual.getFullYear(), mesAtual.getMonth() - 1, 25);
+  const fim = new Date(mesAtual.getFullYear(), mesAtual.getMonth() + 2, 5);
+  const { data, error } = await supabaseClient
+    .from('bloqueios_agenda')
+    .select('*, perfis(nome)')
+    .lt('data_inicio', fim.toISOString())
+    .gt('data_fim', inicio.toISOString())
+    .order('data_inicio', { ascending: true });
+  if (error) { bloqueiosCache = []; return; }
+  bloqueiosCache = data;
+}
+
+// Um bloqueio pode cobrir vários dias (viagem) — expande em um mapa por
+// dia, igual eventosPorDiaDoMes(), pra desenhar na grade e no painel.
+function bloqueiosPorDiaDoMes() {
+  const porDia = {};
+  bloqueiosCache.forEach(b => {
+    const inicio = new Date(b.data_inicio);
+    const fim = new Date(b.data_fim);
+    const cursor = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+    const fimDia = new Date(fim.getFullYear(), fim.getMonth(), fim.getDate());
+    while (cursor <= fimDia) {
+      const chave = chaveData(cursor);
+      (porDia[chave] = porDia[chave] || []).push(b);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  });
+  return porDia;
+}
+
 function chaveCorProfissional(nome) {
   if (!nome) return 'nenhum';
   if (nome === 'Tami') return 'tami';
@@ -1587,6 +1705,7 @@ function renderizarCalendario() {
   const hojeChave = chaveData(hoje);
   const selecionadoChave = chaveData(diaSelecionado);
   const eventosPorDia = eventosPorDiaDoMes();
+  const bloqueiosPorDia = bloqueiosPorDiaDoMes();
 
   const gradeEl = document.getElementById('calendario-grade');
   gradeEl.innerHTML = '';
@@ -1628,6 +1747,20 @@ function renderizarCalendario() {
       celula.appendChild(pontos);
     }
 
+    const bloqueiosDoDia = bloqueiosPorDia[chave] || [];
+    if (bloqueiosDoDia.length) {
+      const barra = document.createElement('div');
+      barra.className = 'calendario-bloqueios';
+      const nomesUnicos = Array.from(new Set(bloqueiosDoDia.map(b => b.perfis ? b.perfis.nome : null).filter(Boolean)));
+      nomesUnicos.forEach(nome => {
+        const tag = document.createElement('span');
+        tag.className = 'calendario-bloqueio-tag ponto-prof-' + chaveCorProfissional(nome);
+        tag.title = `${nome} indisponível`;
+        barra.appendChild(tag);
+      });
+      celula.appendChild(barra);
+    }
+
     celula.addEventListener('click', () => selecionarDia(dia));
     gradeEl.appendChild(celula);
   }
@@ -1644,16 +1777,36 @@ function renderizarPainelDia() {
   const chave = chaveData(diaSelecionado);
   const eventosPorDia = eventosPorDiaDoMes();
   const eventosDoDia = (eventosPorDia[chave] || []).sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+  const bloqueiosDoDia = (bloqueiosPorDiaDoMes()[chave] || []).sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
 
   document.getElementById('painel-dia-titulo').textContent =
     diaSelecionado.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
 
   const listaEl = document.getElementById('painel-dia-lista');
-  if (!eventosDoDia.length) {
+  if (!eventosDoDia.length && !bloqueiosDoDia.length) {
     listaEl.innerHTML = '<p class="painel-dia-vazio">Nenhum compromisso neste dia.</p>';
     return;
   }
   listaEl.innerHTML = '';
+
+  bloqueiosDoDia.forEach(b => {
+    const nome = b.perfis ? b.perfis.nome : 'Profissional';
+    const faixa = b.dia_inteiro
+      ? 'o dia todo'
+      : `${new Date(b.data_inicio).toTimeString().slice(0,5)}–${new Date(b.data_fim).toTimeString().slice(0,5)}`;
+    const linha = document.createElement('div');
+    linha.className = 'bloqueio-linha';
+    linha.innerHTML = `
+      <span class="bloqueio-linha-icone">🚫</span>
+      <div class="bloqueio-linha-corpo">
+        <div class="bloqueio-linha-titulo">${escaparHtmlAgenda(nome)} indisponível <span class="rotulo-dica">(${faixa})</span></div>
+        ${b.motivo ? `<div class="bloqueio-linha-info">${escaparHtmlAgenda(b.motivo)}</div>` : ''}
+      </div>
+    `;
+    linha.addEventListener('click', () => abrirModalBloqueio(b));
+    listaEl.appendChild(linha);
+  });
+
   eventosDoDia.forEach(ev => {
     const cliente = clientesCacheAgenda.find(c => c.id === ev.cliente_id);
     const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
@@ -1673,10 +1826,131 @@ function renderizarPainelDia() {
 
 document.getElementById('botao-adicionar-no-dia').addEventListener('click', () => abrirModalEvento('novo', null, diaSelecionado));
 
+// ---- MODAL DE BLOQUEIO (dia/horário indisponível) ----
+const modalBloqueio = document.getElementById('modal-bloqueio');
+const formBloqueio = document.getElementById('form-bloqueio');
+
+function renderizarOpcoesPerfilBloqueio() {
+  const select = document.getElementById('bloqueio-perfil');
+  select.innerHTML = perfisCacheAgenda.map(p => `<option value="${p.id}">${escaparHtmlAgenda(p.nome)}</option>`).join('');
+}
+
+function abrirModalBloqueio(bloqueio, diaClicado) {
+  formBloqueio.reset();
+  document.getElementById('erro-bloqueio').textContent = '';
+  renderizarOpcoesPerfilBloqueio();
+  document.getElementById('bloqueio-campo-data-fim').classList.add('oculto');
+  document.getElementById('bloqueio-campo-horarios').classList.add('oculto');
+  document.getElementById('bloqueio-dia-inteiro').checked = true;
+  document.getElementById('bloqueio-varios-dias').checked = false;
+
+  if (bloqueio) {
+    document.getElementById('modal-bloqueio-titulo').textContent = 'Editar bloqueio';
+    document.getElementById('bloqueio-id').value = bloqueio.id;
+    document.getElementById('bloqueio-perfil').value = bloqueio.perfil_id;
+    const inicio = new Date(bloqueio.data_inicio);
+    const fim = new Date(bloqueio.data_fim);
+    document.getElementById('bloqueio-data-inicio').value = chaveData(inicio);
+    const diasDiferentes = chaveData(inicio) !== chaveData(fim);
+    if (diasDiferentes) {
+      document.getElementById('bloqueio-varios-dias').checked = true;
+      document.getElementById('bloqueio-campo-data-fim').classList.remove('oculto');
+      document.getElementById('bloqueio-data-fim').value = chaveData(fim);
+    }
+    document.getElementById('bloqueio-dia-inteiro').checked = bloqueio.dia_inteiro;
+    if (!bloqueio.dia_inteiro) {
+      document.getElementById('bloqueio-campo-horarios').classList.remove('oculto');
+      document.getElementById('bloqueio-hora-inicio').value = inicio.toTimeString().slice(0, 5);
+      document.getElementById('bloqueio-hora-fim').value = fim.toTimeString().slice(0, 5);
+    }
+    document.getElementById('bloqueio-motivo').value = bloqueio.motivo || '';
+    document.getElementById('botao-excluir-bloqueio').classList.remove('oculto');
+  } else {
+    document.getElementById('modal-bloqueio-titulo').textContent = 'Bloquear dia';
+    document.getElementById('bloqueio-id').value = '';
+    document.getElementById('bloqueio-data-inicio').value = chaveData(diaClicado || diaSelecionado);
+    document.getElementById('botao-excluir-bloqueio').classList.add('oculto');
+  }
+  modalBloqueio.classList.remove('oculto');
+}
+
+document.getElementById('botao-bloquear-dia').addEventListener('click', () => abrirModalBloqueio(null, diaSelecionado));
+document.getElementById('botao-fechar-modal-bloqueio').addEventListener('click', () => modalBloqueio.classList.add('oculto'));
+modalBloqueio.addEventListener('click', (e) => { if (e.target === modalBloqueio) modalBloqueio.classList.add('oculto'); });
+
+document.getElementById('bloqueio-varios-dias').addEventListener('change', (e) => {
+  document.getElementById('bloqueio-campo-data-fim').classList.toggle('oculto', !e.target.checked);
+});
+document.getElementById('bloqueio-dia-inteiro').addEventListener('change', (e) => {
+  document.getElementById('bloqueio-campo-horarios').classList.toggle('oculto', e.target.checked);
+});
+
+formBloqueio.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const erroEl = document.getElementById('erro-bloqueio');
+  erroEl.textContent = '';
+
+  const id = document.getElementById('bloqueio-id').value;
+  const perfilId = document.getElementById('bloqueio-perfil').value;
+  const dataInicio = document.getElementById('bloqueio-data-inicio').value;
+  const variosDias = document.getElementById('bloqueio-varios-dias').checked;
+  const dataFim = variosDias ? (document.getElementById('bloqueio-data-fim').value || dataInicio) : dataInicio;
+  const diaInteiro = document.getElementById('bloqueio-dia-inteiro').checked;
+  const motivo = document.getElementById('bloqueio-motivo').value.trim() || null;
+
+  if (!perfilId || !dataInicio) { erroEl.textContent = 'Selecione quem e a data.'; return; }
+  if (dataFim < dataInicio) { erroEl.textContent = 'A data final não pode ser antes da inicial.'; return; }
+
+  let inicioISO, fimISO;
+  if (diaInteiro) {
+    inicioISO = new Date(`${dataInicio}T00:00:00`).toISOString();
+    fimISO = new Date(`${dataFim}T23:59:59`).toISOString();
+  } else {
+    const horaInicio = document.getElementById('bloqueio-hora-inicio').value;
+    const horaFim = document.getElementById('bloqueio-hora-fim').value;
+    if (!horaInicio || !horaFim) { erroEl.textContent = 'Preencha os horários.'; return; }
+    inicioISO = new Date(`${dataInicio}T${horaInicio}:00`).toISOString();
+    fimISO = new Date(`${dataInicio}T${horaFim}:00`).toISOString();
+  }
+
+  const dadosBloqueio = {
+    perfil_id: perfilId, data_inicio: inicioISO, data_fim: fimISO,
+    dia_inteiro: diaInteiro, motivo,
+  };
+
+  let resultado;
+  if (id) {
+    resultado = await supabaseClient.from('bloqueios_agenda').update(dadosBloqueio).eq('id', id);
+  } else {
+    const perfil = getPerfilAtivo();
+    dadosBloqueio.criado_por = perfil ? perfil.id : null;
+    resultado = await supabaseClient.from('bloqueios_agenda').insert(dadosBloqueio);
+  }
+  if (resultado.error) { erroEl.textContent = `Erro ao salvar: ${resultado.error.message}`; return; }
+
+  modalBloqueio.classList.add('oculto');
+  toast(id ? 'Bloqueio atualizado' : 'Dia bloqueado', 'sucesso');
+  await carregarBloqueiosDoMes();
+  renderizarCalendario();
+});
+
+document.getElementById('botao-excluir-bloqueio').addEventListener('click', async () => {
+  const id = document.getElementById('bloqueio-id').value;
+  if (!id) return;
+  if (!confirm('Remover este bloqueio?')) return;
+  const { error } = await supabaseClient.from('bloqueios_agenda').delete().eq('id', id);
+  if (error) { toast('Erro ao excluir: ' + error.message, 'erro'); return; }
+  modalBloqueio.classList.add('oculto');
+  toast('Bloqueio removido', 'sucesso');
+  await carregarBloqueiosDoMes();
+  renderizarCalendario();
+});
+
 async function irParaMes(delta) {
   mesAtual.setMonth(mesAtual.getMonth() + delta);
   mesAtual.setDate(1);
   await carregarEventosDoMes();
+  await carregarBloqueiosDoMes();
   renderizarCalendario();
 }
 
@@ -1684,6 +1958,7 @@ async function irParaHoje() {
   mesAtual = new Date(); mesAtual.setDate(1);
   diaSelecionado = new Date();
   await carregarEventosDoMes();
+  await carregarBloqueiosDoMes();
   renderizarCalendario();
 }
 
@@ -2436,6 +2711,7 @@ document.getElementById('botao-excluir-evento').addEventListener('click', async 
   if (ok) {
     await carregarClientesEPerfis();
     await carregarEventosDoMes();
+    await carregarBloqueiosDoMes();
     renderizarCalendario();
   }
 })();
