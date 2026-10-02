@@ -1527,9 +1527,19 @@ function mensagemAvisoProfissional(nomeProfissional) {
   if (haParticipantesNoGrupo()) {
     // Atendimento em grupo: sinal/saldo da cliente principal sozinha não
     // dizem nada sobre o total — soma tudo (principal + cada participante)
-    // e aplica a divisão entre profissionais quando há mais de uma.
-    const valorTotalProfissional = valorProfissionalNoAtendimento(nomeProfissional);
-    if (valorTotalProfissional > 0) linhas.push(`💰 *Total a receber* (atendimento inteiro): R$ ${valorTotalProfissional.toFixed(2)}`);
+    // e aplica a divisão entre profissionais quando há mais de uma. Quando
+    // há mais de uma responsável, o valor dela é só a parte dela (a
+    // divisão pode não ser 50/50) — mostra o total do atendimento do
+    // lado pra não parecer, por engano, que é o valor cheio dela.
+    const valorProfissional = valorProfissionalNoAtendimento(nomeProfissional);
+    const pot = calcularPotProfissionalTotal();
+    if (valorProfissional > 0) {
+      if (equipe.length > 1) {
+        linhas.push(`💰 *Sua parte*: R$ ${valorProfissional.toFixed(2)} (do total de R$ ${pot.toFixed(2)} entre a equipe)`);
+      } else {
+        linhas.push(`💰 *Total a receber* (atendimento inteiro): R$ ${valorProfissional.toFixed(2)}`);
+      }
+    }
   } else {
     const sinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
     const saldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
