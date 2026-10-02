@@ -1178,23 +1178,24 @@ function listaServicosSelecionados() {
 function mensagemConfirmacaoEvento(evento, cliente) {
   const nome = cliente ? cliente.nome_noiva : '';
   const dataFmt = new Date(`${evento.data}T00:00:00`).toLocaleDateString('pt-BR');
-  const local = evento.local ? ` em ${evento.local}` : '';
-  let msg = `Olá, ${nome}! Aqui é do Camarim Mineiro 💛 Confirmando seu horário: ${dataFmt} às ${evento.horaInicio}${local}.`;
-  if (evento.servicos && evento.servicos.length) {
-    msg += ` Serviços: ${evento.servicos.join(', ')}.`;
-  }
+
+  const linhas = [];
+  linhas.push(`Olá, ${nome}! Aqui é do Camarim Mineiro 💛`);
+  linhas.push(`📅 Confirmando seu horário: ${dataFmt} às ${evento.horaInicio}`);
+  if (evento.local) linhas.push(`📍 ${evento.local}`);
+  if (evento.servicos && evento.servicos.length) linhas.push(`💄 Serviços: ${evento.servicos.join(', ')}`);
+
   if (evento.valorSinal > 0 && !evento.sinalPago) {
     const chavePix = obterChavePix();
-    msg += ` Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix`;
-    msg += chavePix ? ` (chave: ${chavePix}).` : '.';
+    linhas.push(`💰 Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix${chavePix ? ` (chave: ${chavePix})` : ''}`);
     if (evento.valorTotal > evento.valorSinal) {
-      msg += ` O restante (R$ ${(evento.valorTotal - evento.valorSinal).toFixed(2)}) é pago no dia do atendimento.`;
+      linhas.push(`💰 O restante (R$ ${(evento.valorTotal - evento.valorSinal).toFixed(2)}) é pago no dia do atendimento`);
     }
   } else if (evento.valorSinal > 0 && evento.sinalPago) {
-    msg += ` Sinal já confirmado, obrigada! Nos vemos lá 💛`;
+    linhas.push(`✓ Sinal já confirmado, obrigada! Nos vemos lá 💛`);
   }
-  msg += ` Ah, e já nos segue no Instagram? instagram.com/camarimmineiro`;
-  return msg;
+  linhas.push(`Ah, e já nos segue no Instagram? instagram.com/camarimmineiro`);
+  return linhas.join('\n');
 }
 
 // Mostra/esconde o botão de WhatsApp ao lado do campo Cliente, de acordo
@@ -1502,18 +1503,24 @@ function mensagemAvisoProfissional(nomeProfissional) {
   const servicos = listaServicosSelecionados();
   const dataFmt = data ? new Date(`${data}T00:00:00`).toLocaleDateString('pt-BR') : '';
 
-  let msg = `Oi, ${apelido(nomeProfissional)}! Lembrete de atendimento${titulo ? ` (${titulo})` : ''}: ${dataFmt}${horaInicio ? ` às ${horaInicio}` : ''}`;
-  if (nomeCliente) msg += `, cliente ${nomeCliente}`;
-  if (local) msg += `, em ${local}`;
-  msg += '.';
-  if (servicos.length) msg += ` Serviços: ${servicos.join(', ')}.`;
+  // Monta em linhas separadas (WhatsApp entende \n como quebra de linha
+  // e *texto* como negrito) em vez de um parágrafo só, pra ficar fácil
+  // de bater o olho no celular.
+  const linhas = [];
+  linhas.push(`Oi, ${apelido(nomeProfissional)}! 💛 *Lembrete de atendimento*${titulo ? ` — ${titulo}` : ''}`);
+
+  const dataHora = [dataFmt, horaInicio ? `às ${horaInicio}` : ''].filter(Boolean).join(' ');
+  if (dataHora) linhas.push(`📅 ${dataHora}`);
+  if (nomeCliente) linhas.push(`👤 Cliente: ${nomeCliente}`);
+  if (local) linhas.push(`📍 ${local}`);
+  if (servicos.length) linhas.push(`💄 Serviços: ${servicos.join(', ')}`);
 
   // Quem mais tá na equipe desse atendimento — quem está marcando (dona/sócia
   // incluída) também quer saber quem foi designada, não só a profissional avisada.
   const equipe = obterNomesResponsaveisEventoFinal();
-  if (equipe.length > 1) msg += ` Equipe: ${equipe.map(apelido).join(', ')}.`;
+  if (equipe.length > 1) linhas.push(`👥 Equipe: ${equipe.map(apelido).join(', ')}`);
 
-  if (observacoes) msg += ` Obs: ${observacoes}.`;
+  if (observacoes) linhas.push(`📝 Obs: ${observacoes}`);
 
   // Só o que é dela: o sinal que vai pra profissional e o saldo do dia.
   // O sinal do negócio é informação interna, não entra na mensagem.
@@ -1522,14 +1529,14 @@ function mensagemAvisoProfissional(nomeProfissional) {
     // dizem nada sobre o total — soma tudo (principal + cada participante)
     // e aplica a divisão entre profissionais quando há mais de uma.
     const valorTotalProfissional = valorProfissionalNoAtendimento(nomeProfissional);
-    if (valorTotalProfissional > 0) msg += ` Total a receber (sinal + saldo, do atendimento inteiro): R$ ${valorTotalProfissional.toFixed(2)}.`;
+    if (valorTotalProfissional > 0) linhas.push(`💰 *Total a receber* (atendimento inteiro): R$ ${valorTotalProfissional.toFixed(2)}`);
   } else {
     const sinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
     const saldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
-    if (sinalProfissional > 0) msg += ` Seu sinal: R$ ${sinalProfissional.toFixed(2)}.`;
-    if (saldo > 0) msg += ` Saldo no dia: R$ ${saldo.toFixed(2)}.`;
+    if (sinalProfissional > 0) linhas.push(`💰 Seu sinal: R$ ${sinalProfissional.toFixed(2)}`);
+    if (saldo > 0) linhas.push(`💰 Saldo no dia: R$ ${saldo.toFixed(2)}`);
   }
-  return msg;
+  return linhas.join('\n');
 }
 
 // Confirmação visível de quem está marcado como responsável, bem
