@@ -549,6 +549,11 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
   font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
 }
 .opcao-responsavel.selecionado { background: var(--teal-deep); border-color: var(--teal-deep); color: var(--white); }
+.confirmacao-responsaveis {
+  font-size: 0.8rem; font-weight: 600; margin: 0.5rem 0 0;
+}
+.confirmacao-responsaveis.tem-responsavel { color: var(--teal-deep); }
+.confirmacao-responsaveis.sem-responsavel { color: var(--red); }
 .rotulo-dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink3); font-size: 0.72rem; }
 
 .opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
@@ -801,6 +806,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 
       <label>Responsáveis <span class="rotulo-dica">(pode marcar mais de uma)</span></label>
       <div class="opcoes-responsavel" id="opcoes-responsavel"></div>
+      <p class="confirmacao-responsaveis" id="confirmacao-responsaveis"></p>
       <input type="text" id="evento-responsavel-outra" placeholder="Outros nomes, separados por vírgula" class="oculto" style="margin-top:0.5rem">
       <div class="oculto" id="bloco-nova-profissional-rapida">
         <div class="linha-form">
@@ -1327,6 +1333,7 @@ document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
     botao.classList.toggle('selecionado', ativar);
     campoOutra.classList.toggle('oculto', !ativar);
     if (ativar) campoOutra.focus(); else campoOutra.value = '';
+    atualizarBotoesAvisarProfissionais();
     renderizarDivisaoProfissionais();
     return;
   }
@@ -1337,7 +1344,10 @@ document.getElementById('opcoes-responsavel').addEventListener('click', (e) => {
   renderizarDivisaoProfissionais();
 });
 
-document.getElementById('evento-responsavel-outra').addEventListener('input', renderizarDivisaoProfissionais);
+document.getElementById('evento-responsavel-outra').addEventListener('input', () => {
+  atualizarConfirmacaoResponsaveis();
+  renderizarDivisaoProfissionais();
+});
 
 // Cria uma profissional externa na hora (nome + WhatsApp), sem precisar
 // ir até Integrações antes, e já marca ela como responsável.
@@ -1410,7 +1420,24 @@ function mensagemAvisoProfissional(nomeProfissional) {
   return msg;
 }
 
+// Confirmação visível de quem está marcado como responsável, bem
+// embaixo dos botões — pra nunca restar dúvida (nem silenciosamente
+// salvar vazio) se a profissional selecionada realmente "colou".
+function atualizarConfirmacaoResponsaveis() {
+  const el = document.getElementById('confirmacao-responsaveis');
+  if (!el) return;
+  const nomes = obterNomesResponsaveisEventoFinal();
+  if (!nomes.length) {
+    el.textContent = '⚠ Nenhuma profissional marcada como responsável ainda.';
+    el.className = 'confirmacao-responsaveis sem-responsavel';
+  } else {
+    el.textContent = `✓ Responsável(eis): ${nomes.map(apelido).join(', ')}`;
+    el.className = 'confirmacao-responsaveis tem-responsavel';
+  }
+}
+
 function atualizarBotoesAvisarProfissionais() {
+  atualizarConfirmacaoResponsaveis();
   const area = document.getElementById('area-avisar-profissionais');
   const lista = document.getElementById('lista-avisar-profissionais');
   const selecionados = Array.from(responsaveisEventoSelecionados)
