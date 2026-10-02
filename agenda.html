@@ -1473,6 +1473,18 @@ document.getElementById('botao-salvar-nova-profissional').addEventListener('clic
 const APELIDOS_PROFISSIONAIS = { Stefania: 'Ste' };
 function apelido(nome) { return APELIDOS_PROFISSIONAIS[nome] || nome; }
 
+// Quanto essa profissional deve receber do atendimento INTEIRO — soma
+// sinal-profissional + saldo da cliente principal com os de cada
+// participante do grupo (não só da principal), e aplica a divisão
+// entre profissionais quando há mais de uma responsável.
+function valorProfissionalNoAtendimento(nomeProfissional) {
+  const pot = calcularPotProfissionalTotal();
+  const nomes = obterNomesResponsaveisEventoFinal();
+  if (nomes.length <= 1) return pot;
+  if (valoresDivisaoProfissionais[nomeProfissional] !== undefined) return valoresDivisaoProfissionais[nomeProfissional];
+  return pot / nomes.length;
+}
+
 function mensagemAvisoProfissional(nomeProfissional) {
   const clienteSelecionado = document.getElementById('evento-cliente').value;
   let nomeCliente = '';
@@ -1505,10 +1517,18 @@ function mensagemAvisoProfissional(nomeProfissional) {
 
   // Só o que é dela: o sinal que vai pra profissional e o saldo do dia.
   // O sinal do negócio é informação interna, não entra na mensagem.
-  const sinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
-  const saldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
-  if (sinalProfissional > 0) msg += ` Seu sinal: R$ ${sinalProfissional.toFixed(2)}.`;
-  if (saldo > 0) msg += ` Saldo no dia: R$ ${saldo.toFixed(2)}.`;
+  if (haParticipantesNoGrupo()) {
+    // Atendimento em grupo: sinal/saldo da cliente principal sozinha não
+    // dizem nada sobre o total — soma tudo (principal + cada participante)
+    // e aplica a divisão entre profissionais quando há mais de uma.
+    const valorTotalProfissional = valorProfissionalNoAtendimento(nomeProfissional);
+    if (valorTotalProfissional > 0) msg += ` Total a receber (sinal + saldo, do atendimento inteiro): R$ ${valorTotalProfissional.toFixed(2)}.`;
+  } else {
+    const sinalProfissional = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
+    const saldo = parseFloat(document.getElementById('evento-valor-saldo').value) || 0;
+    if (sinalProfissional > 0) msg += ` Seu sinal: R$ ${sinalProfissional.toFixed(2)}.`;
+    if (saldo > 0) msg += ` Saldo no dia: R$ ${saldo.toFixed(2)}.`;
+  }
   return msg;
 }
 
