@@ -555,6 +555,11 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .confirmacao-responsaveis.tem-responsavel { color: var(--teal-deep); }
 .confirmacao-responsaveis.sem-responsavel { color: var(--red); }
 .rotulo-dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--ink3); font-size: 0.72rem; }
+.aviso-grupo {
+  display: block; font-size: 0.78rem; font-weight: 600; color: #96702F;
+  background: var(--gold-dim); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem; margin: 0.2rem 0 0.8rem;
+}
 
 .opcoes-tipo-cliente { display: flex; gap: 0.5rem; margin-top: 0.3rem; margin-bottom: 0.5rem; }
 .opcao-tipo-cliente {
@@ -848,6 +853,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
           <span class="valor-sinal-destaque" id="valor-total-evento-display">R$ 0.00</span>
         </div>
         <p class="rotulo-dica" style="display:block; margin:0.2rem 0 0.6rem">Três valores separados: sinal pro negócio, sinal pra profissional, e o saldo final (pago no dia) pra profissional.</p>
+        <p class="aviso-grupo oculto" id="aviso-sinal-saldo-grupo">⚠ Tem outras clientes no grupo — os três campos abaixo são só da cliente principal. O valor de cada uma das outras entra lá embaixo, em "Outras clientes neste atendimento".</p>
 
         <div class="linha-pagamento-sinal linha-pagamento-editavel">
           <span>Sinal — negócio <span class="rotulo-dica">(sugestão: 20%)</span></span>
@@ -1696,8 +1702,21 @@ let sinalEditadoManualmente = false;
 let sinalProfissionalEditadoManualmente = false;
 let saldoEditadoManualmente = false;
 
+// Num atendimento de grupo, "valor total" é da turma toda — então
+// sugerir 20% disso (ou total-sinal) como se fosse só da cliente
+// principal não faz sentido e só confunde. Com participantes na lista,
+// esses dois campos passam a exigir digitação manual (começam em 0).
+function haParticipantesNoGrupo() {
+  return document.querySelectorAll('#lista-participantes-grupo .linha-participante-grupo').length > 0;
+}
+
+function atualizarAvisoGrupo() {
+  const aviso = document.getElementById('aviso-sinal-saldo-grupo');
+  if (aviso) aviso.classList.toggle('oculto', !haParticipantesNoGrupo());
+}
+
 function recalcularSaldoAutomatico() {
-  if (saldoEditadoManualmente) return;
+  if (saldoEditadoManualmente || haParticipantesNoGrupo()) return;
   const total = parseFloat(document.getElementById('valor-total-evento-display').textContent.replace('R$', '').trim()) || 0;
   const sinal = parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
   const sinalProf = parseFloat(document.getElementById('evento-valor-sinal-profissional').value) || 0;
@@ -1711,10 +1730,11 @@ function calcularSinal() {
   document.getElementById('valor-subtotal-evento-display').textContent = `R$ ${subtotal.toFixed(2)}`;
   document.getElementById('valor-total-evento-display').textContent = `R$ ${total.toFixed(2)}`;
 
-  if (!sinalEditadoManualmente) document.getElementById('evento-valor-sinal').value = (total * 0.2).toFixed(2);
+  if (!sinalEditadoManualmente && !haParticipantesNoGrupo()) document.getElementById('evento-valor-sinal').value = (total * 0.2).toFixed(2);
   recalcularSaldoAutomatico();
   atualizarResumoFinanceiro();
   atualizarStatusDivisaoProfissionais();
+  atualizarAvisoGrupo();
   return parseFloat(document.getElementById('evento-valor-sinal').value) || 0;
 }
 document.getElementById('evento-desconto').addEventListener('input', calcularSinal);
@@ -2002,6 +2022,7 @@ function criarLinhaParticipante(participante) {
     div.remove();
     atualizarResumoFinanceiro();
     atualizarStatusDivisaoProfissionais();
+    atualizarAvisoGrupo();
   });
 
   return div;
@@ -2011,6 +2032,7 @@ document.getElementById('botao-adicionar-participante').addEventListener('click'
   document.getElementById('lista-participantes-grupo').appendChild(criarLinhaParticipante(null));
   atualizarResumoFinanceiro();
   atualizarStatusDivisaoProfissionais();
+  atualizarAvisoGrupo();
 });
 
 async function abrirModalEvento(modo, evento, diaClicado) {
@@ -2064,6 +2086,15 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     definirResponsavelEventoNoFormulario(nomesResponsaveisEvento(evento));
     atualizarBotoesAvisarProfissionais();
 
+    // Carrega as outras clientes do grupo ANTES de calcular sinal/saldo —
+    // haParticipantesNoGrupo() precisa saber se é um atendimento de grupo
+    // pra decidir se sugere um valor pra cliente principal ou deixa em
+    // branco pra digitar à mão (ver calcularSinal/recalcularSaldoAutomatico).
+    const { data: participantesExistentes } = await supabaseClient
+      .from('evento_participantes').select('*').eq('evento_id', evento.id);
+    const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
+    (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
+
     quantidadesServicoEvento = {};
     document.getElementById('evento-desconto').value = evento.desconto || '';
     const { data: itensExistentes } = await supabaseClient.from('evento_servicos').select('*').eq('evento_id', evento.id);
@@ -2086,9 +2117,11 @@ async function abrirModalEvento(modo, evento, diaClicado) {
       // toda mas o saldo da cliente principal é só a parte dela).
       document.getElementById('evento-valor-saldo').value = Number(evento.valor_saldo).toFixed(2);
       saldoEditadoManualmente = true;
-    } else if (evento.valor_total != null) {
+    } else if (evento.valor_total != null && !haParticipantesNoGrupo()) {
       // Compromisso salvo antes do saldo passar a ser persistido —
-      // melhor aproximação possível: total menos os sinais.
+      // melhor aproximação possível: total menos os sinais. Só faz
+      // sentido sem participantes — com grupo, total é da turma toda,
+      // então essa conta ficaria sem nexo nenhum pra cliente principal.
       document.getElementById('evento-valor-saldo').value = Math.max(0, Number(evento.valor_total) - Number(evento.valor_sinal || 0) - Number(evento.valor_sinal_profissional || 0)).toFixed(2);
       saldoEditadoManualmente = true;
     }
@@ -2103,10 +2136,6 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('campo-saldo-metodo').classList.toggle('oculto', !evento.saldo_pago);
     document.getElementById('evento-saldo-metodo').value = evento.saldo_metodo || 'pix';
 
-    const { data: participantesExistentes } = await supabaseClient
-      .from('evento_participantes').select('*').eq('evento_id', evento.id);
-    const listaParticipantesEl = document.getElementById('lista-participantes-grupo');
-    (participantesExistentes || []).forEach(p => listaParticipantesEl.appendChild(criarLinhaParticipante(p)));
     atualizarResumoFinanceiro();
 
     const { data: divisaoExistente } = await supabaseClient
