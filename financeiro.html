@@ -519,6 +519,31 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .projecao-total-linha .valor-prof { font-size: 1.05rem; white-space: nowrap; }
 .rotulo-mes-projecao { display: block; margin-top: 0.2rem; }
 
+.mei-cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-wrap: wrap; }
+.mei-cabecalho h3 { margin-bottom: 0; }
+#mei-ano-select { width: auto; padding: 0.45rem 0.7rem; font-size: 0.82rem; }
+.mei-resumo-numeros {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+.mei-numero {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 0.8rem 0.9rem;
+}
+.mei-numero-rotulo { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink2); margin-bottom: 0.3rem; }
+.mei-numero-valor { font-family: 'DM Mono', monospace; font-size: 1.15rem; font-weight: 600; color: var(--ink); }
+.mei-barra-fundo { height: 10px; border-radius: 999px; background: var(--surface2); overflow: hidden; }
+.mei-barra-preenchida { height: 100%; border-radius: 999px; background: var(--teal-deep); transition: width 300ms ease; }
+.mei-barra-preenchida.alerta { background: var(--gold); }
+.mei-barra-preenchida.estourado { background: var(--red); }
+.mei-barra-legenda { font-size: 0.76rem; color: var(--ink2); margin-top: 0.4rem; }
+.mei-aviso {
+  font-size: 0.82rem; font-weight: 600; margin-top: 0.7rem; padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-sm);
+}
+.mei-aviso.alerta { color: #96702F; background: var(--gold-dim); }
+.mei-aviso.estourado { color: var(--red); background: var(--red-dim); }
+
 .export-row-financeiro { display: flex; gap: 0.7rem; margin-bottom: 1.4rem; }
 .botao-exportar {
   padding: 0.6rem 1.1rem; border-radius: var(--radius-sm); border: 1px solid var(--border);
@@ -528,6 +553,7 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .botao-exportar:hover { border-color: var(--teal); color: var(--ink); }
 
 .tabela-pagamentos { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.tabela-mei { min-width: 480px; }
 .tabela-pagamentos th {
   text-align: left; padding: 0.6rem 0.7rem; border-bottom: 1px solid var(--border);
   color: var(--ink2); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
@@ -577,6 +603,50 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       <span class="nome-prof">Total projetado para as profissionais</span>
       <span class="valor-prof" id="projecao-total-profissionais">R$ 0.00</span>
     </div>
+  </div>
+
+  <div class="grafico-container" id="card-faturamento-mei">
+    <div class="mei-cabecalho">
+      <h3>Faturamento MEI <span class="rotulo-dica">— acompanhamento do limite anual</span></h3>
+      <select id="mei-ano-select"></select>
+    </div>
+    <p class="subtitulo" style="margin-top:0.3rem; margin-bottom:1.1rem;">Conta só o que entra pela empresa (sinal/negócio) — o sinal-profissional e o saldo que vão direto pra conta de cada profissional não entram aqui, já que esse dinheiro não passa pela sua MEI.</p>
+
+    <div class="mei-resumo-numeros">
+      <div class="mei-numero">
+        <div class="mei-numero-rotulo">Faturado no ano</div>
+        <div class="mei-numero-valor" id="mei-faturado">R$ 0.00</div>
+      </div>
+      <div class="mei-numero">
+        <div class="mei-numero-rotulo">Limite anual MEI</div>
+        <div class="mei-numero-valor" id="mei-limite">R$ 81,000.00</div>
+      </div>
+      <div class="mei-numero">
+        <div class="mei-numero-rotulo">Ainda cabe</div>
+        <div class="mei-numero-valor" id="mei-restante">R$ 0.00</div>
+      </div>
+    </div>
+
+    <div class="mei-barra-fundo"><div class="mei-barra-preenchida" id="mei-barra"></div></div>
+    <div class="mei-barra-legenda" id="mei-barra-legenda">0% do limite usado</div>
+    <p class="mei-aviso oculto" id="mei-aviso"></p>
+
+    <div style="overflow-x:auto">
+      <table class="tabela-pagamentos tabela-mei" style="margin-top:1.1rem">
+        <thead>
+          <tr><th>Mês</th><th style="text-align:right">Faturado</th><th style="text-align:right">Acumulado</th><th style="text-align:right">% do limite</th></tr>
+        </thead>
+        <tbody id="mei-tabela-meses"></tbody>
+      </table>
+    </div>
+
+    <div class="export-row-financeiro" style="margin-top:1rem">
+      <button class="botao-exportar" id="botao-exportar-mei">⬇ Exportar relatório MEI (Excel)</button>
+    </div>
+
+    <p class="rotulo-dica" style="display:block; margin-top:0.9rem; line-height:1.5;">
+      DAS mensal (MEI serviços, 2026): R$ 86,05 — valor fixo, todo mês. Declaração anual (DASN-SIMEI) do ano anterior: até 31 de maio. Passar do limite em até 20% (R$ 97.200) ainda deixa continuar como MEI, com um DAS complementar sobre o excedente gerado na própria declaração anual; acima de 20%, o desenquadramento vale retroativo a janeiro. Confira esses números e o enquadramento com sua contadora — isso aqui organiza os dados, não substitui orientação fiscal.
+    </p>
   </div>
 
   <div class="filtro-periodo-financeiro">
@@ -1222,11 +1292,114 @@ document.getElementById('botao-exportar-pdf').addEventListener('click', exportar
 
 document.getElementById('financeiro-filtro-profissional').addEventListener('change', carregarResumoFinanceiro);
 
+// ============================================================
+// FATURAMENTO MEI — acompanhamento do limite anual
+// Conta só pagamentos com destino "negocio" (o sinal que fica na
+// empresa) — o que vai direto pra conta de cada profissional
+// (sinal-profissional + saldo) não é receita da MEI, é repasse direto
+// da cliente pra profissional, então fica de fora dessa conta.
+// Limite e valores de DAS conferidos pra 2026 — reconfira todo ano,
+// porque a Receita costuma reajustar.
+// ============================================================
+const MEI_LIMITE_ANUAL = 81000;
+let meiDadosDoAno = null;
+
+function preencherSeletorAnoMei() {
+  const select = document.getElementById('mei-ano-select');
+  const anoAtual = new Date().getFullYear();
+  const anos = [anoAtual, anoAtual - 1, anoAtual - 2];
+  select.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  select.value = anoAtual;
+}
+
+async function carregarFaturamentoMEI() {
+  const ano = document.getElementById('mei-ano-select').value;
+  const { data, error } = await supabaseClient
+    .from('pagamentos')
+    .select('data_pagamento, valor')
+    .eq('destino', 'negocio')
+    .gte('data_pagamento', `${ano}-01-01`)
+    .lte('data_pagamento', `${ano}-12-31`);
+  if (error) { toast('Erro ao carregar faturamento MEI', 'erro'); return; }
+
+  const porMes = Array(12).fill(0);
+  (data || []).forEach(p => {
+    const mes = Number(p.data_pagamento.slice(5, 7)) - 1;
+    porMes[mes] += Number(p.valor);
+  });
+  const totalAno = porMes.reduce((soma, v) => soma + v, 0);
+  meiDadosDoAno = { ano, porMes, totalAno };
+
+  const percentual = (totalAno / MEI_LIMITE_ANUAL) * 100;
+  document.getElementById('mei-faturado').textContent = `R$ ${totalAno.toFixed(2)}`;
+  document.getElementById('mei-limite').textContent = `R$ ${MEI_LIMITE_ANUAL.toFixed(2)}`;
+  document.getElementById('mei-restante').textContent = `R$ ${Math.max(0, MEI_LIMITE_ANUAL - totalAno).toFixed(2)}`;
+
+  const barraEl = document.getElementById('mei-barra');
+  barraEl.style.width = `${Math.min(100, percentual)}%`;
+  barraEl.className = 'mei-barra-preenchida' + (percentual >= 100 ? ' estourado' : percentual >= 80 ? ' alerta' : '');
+  document.getElementById('mei-barra-legenda').textContent = `${percentual.toFixed(1)}% do limite usado`;
+
+  const avisoEl = document.getElementById('mei-aviso');
+  if (percentual >= 100) {
+    avisoEl.textContent = '⚠ O faturamento do ano já passou do limite anual do MEI. Fale com sua contadora sobre o DAS complementar na declaração anual (ou desenquadramento, se passar de 20%).';
+    avisoEl.className = 'mei-aviso estourado';
+  } else if (percentual >= 80) {
+    avisoEl.textContent = `⚠ Já foi usado ${percentual.toFixed(0)}% do limite anual do MEI — vale ficar de olho no que falta do ano.`;
+    avisoEl.className = 'mei-aviso alerta';
+  } else {
+    avisoEl.className = 'mei-aviso oculto';
+  }
+
+  const nomesMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  let acumulado = 0;
+  document.getElementById('mei-tabela-meses').innerHTML = porMes.map((valor, i) => {
+    acumulado += valor;
+    const pctAcumulado = (acumulado / MEI_LIMITE_ANUAL) * 100;
+    return `<tr>
+      <td>${nomesMes[i]}</td>
+      <td style="text-align:right; font-family:'DM Mono',monospace">R$ ${valor.toFixed(2)}</td>
+      <td style="text-align:right; font-family:'DM Mono',monospace">R$ ${acumulado.toFixed(2)}</td>
+      <td style="text-align:right; font-family:'DM Mono',monospace">${pctAcumulado.toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('mei-ano-select').addEventListener('change', carregarFaturamentoMEI);
+
+function exportarRelatorioMei() {
+  if (!meiDadosDoAno) return;
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  script.onload = () => {
+    const nomesMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+    const linhas = [['Mês', 'Faturado (R$)', 'Acumulado (R$)', '% do limite anual']];
+    let acumulado = 0;
+    meiDadosDoAno.porMes.forEach((valor, i) => {
+      acumulado += valor;
+      linhas.push([nomesMes[i], valor.toFixed(2), acumulado.toFixed(2), ((acumulado / MEI_LIMITE_ANUAL) * 100).toFixed(1) + '%']);
+    });
+    linhas.push([]);
+    linhas.push(['Total faturado no ano', meiDadosDoAno.totalAno.toFixed(2)]);
+    linhas.push(['Limite anual MEI', MEI_LIMITE_ANUAL.toFixed(2)]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(linhas);
+    ws['!cols'] = [{wch:14},{wch:16},{wch:16},{wch:16}];
+    XLSX.utils.book_append_sheet(wb, ws, `Faturamento MEI ${meiDadosDoAno.ano}`);
+    XLSX.writeFile(wb, `camarim-faturamento-mei-${meiDadosDoAno.ano}.xlsx`);
+    toast('Relatório MEI baixado', 'sucesso');
+  };
+  document.head.appendChild(script);
+}
+document.getElementById('botao-exportar-mei').addEventListener('click', exportarRelatorioMei);
+
 (async function iniciar() {
   const ok = await protegerRota();
   if (ok) {
     definirPeriodoPadrao();
     await carregarProjecaoMes();
+    preencherSeletorAnoMei();
+    await carregarFaturamentoMEI();
     await carregarServicos();
     await carregarListaProfissionais();
     await carregarResumoFinanceiro();

@@ -2615,6 +2615,11 @@ formEvento.addEventListener('submit', async (e) => {
 // registrarPagamentoSeNecessario, filtra também por cliente_id, já que
 // várias clientes do mesmo evento têm pagamentos independentes.
 async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, valor, metodo, perfil) {
+  // Mesma regra do pagamento da cliente principal: só o sinal fica com
+  // o negócio — sinal-profissional e saldo-final vão direto pra conta
+  // da profissional. Isso era fixo em 'negocio' pra tudo, o que inflava
+  // o faturamento da empresa com dinheiro que nem passa pela MEI.
+  const destino = tipo === 'sinal' ? 'negocio' : 'profissional';
   const { data: existentes } = await supabaseClient
     .from('pagamentos').select('id').eq('evento_id', eventoId).eq('cliente_id', clienteId).eq('tipo', tipo);
   if (!pago) {
@@ -2622,10 +2627,10 @@ async function registrarPagamentoParticipante(eventoId, clienteId, tipo, pago, v
     return;
   }
   if (existentes && existentes.length) {
-    await supabaseClient.from('pagamentos').update({ valor, metodo }).eq('id', existentes[0].id);
+    await supabaseClient.from('pagamentos').update({ valor, metodo, destino }).eq('id', existentes[0].id);
   } else {
     await supabaseClient.from('pagamentos').insert({
-      cliente_id: clienteId, evento_id: eventoId, tipo, valor, metodo, destino: 'negocio',
+      cliente_id: clienteId, evento_id: eventoId, tipo, valor, metodo, destino,
       criado_por: perfil ? perfil.id : null,
     });
   }
