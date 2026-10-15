@@ -1193,11 +1193,11 @@ function mensagemConfirmacaoEvento(evento, cliente) {
 
   if (evento.valorTotal > 0) linhas.push(`💰 Valor total: R$ ${evento.valorTotal.toFixed(2)}`);
 
+  // Só menciona o sinal se ainda falta pagar — se já foi marcado como
+  // pago, não tem necessidade nenhuma de falar nisso de novo.
   if (evento.valorSinal > 0 && !evento.sinalPago) {
     const chavePix = obterChavePix();
     linhas.push(`💰 Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix${chavePix ? ` (chave: ${chavePix})` : ''}`);
-  } else if (evento.valorSinal > 0 && evento.sinalPago) {
-    linhas.push(`✓ Sinal já confirmado, obrigada!`);
   }
 
   // Valor que falta pagar no dia — mostrado sempre (sinal pago ou não),

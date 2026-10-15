@@ -5,7 +5,7 @@
 // aqui — o app sempre busca dados atualizados online.
 // ============================================================
 
-const CACHE_NOME = 'camarim-mineiro-v24';
+const CACHE_NOME = 'camarim-mineiro-v25';
 const ARQUIVOS_SHELL = [
   'index.html',
   'clientes.html',
