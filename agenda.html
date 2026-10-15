@@ -1191,15 +1191,21 @@ function mensagemConfirmacaoEvento(evento, cliente) {
   if (evento.local) linhas.push(`📍 ${evento.local}`);
   if (evento.servicos && evento.servicos.length) linhas.push(`💄 Serviços: ${evento.servicos.join(', ')}`);
 
+  if (evento.valorTotal > 0) linhas.push(`💰 Valor total: R$ ${evento.valorTotal.toFixed(2)}`);
+
   if (evento.valorSinal > 0 && !evento.sinalPago) {
     const chavePix = obterChavePix();
     linhas.push(`💰 Para garantir a vaga, pedimos um sinal de R$ ${evento.valorSinal.toFixed(2)} via Pix${chavePix ? ` (chave: ${chavePix})` : ''}`);
-    if (evento.valorTotal > evento.valorSinal) {
-      linhas.push(`💰 O restante (R$ ${(evento.valorTotal - evento.valorSinal).toFixed(2)}) é pago no dia do atendimento`);
-    }
   } else if (evento.valorSinal > 0 && evento.sinalPago) {
-    linhas.push(`✓ Sinal já confirmado, obrigada! Nos vemos lá 💛`);
+    linhas.push(`✓ Sinal já confirmado, obrigada!`);
   }
+
+  // Valor que falta pagar no dia — mostrado sempre (sinal pago ou não),
+  // pra cliente já saber de antemão quanto levar no dia do atendimento.
+  if (evento.valorSaldo > 0) {
+    linhas.push(`💰 Valor a pagar no dia do atendimento: R$ ${evento.valorSaldo.toFixed(2)}`);
+  }
+
   linhas.push(`Ah, e já nos segue no Instagram? instagram.com/camarimmineiro`);
   return linhas.join('\n');
 }
@@ -1224,6 +1230,7 @@ function atualizarBotaoWhatsappCliente() {
       valorTotal,
       valorSinal: parseFloat(document.getElementById('evento-valor-sinal').value) || 0,
       sinalPago: document.getElementById('evento-sinal-pago').checked,
+      valorSaldo: parseFloat(document.getElementById('evento-valor-saldo').value) || 0,
       servicos: listaServicosSelecionados(),
     };
     abrirWhatsapp(cliente.whatsapp, mensagemConfirmacaoEvento(dadosMsg, cliente));
