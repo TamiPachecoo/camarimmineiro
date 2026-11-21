@@ -508,6 +508,35 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
 .evento-linha-corpo { flex: 1; min-width: 0; }
 .evento-linha-titulo { font-size: 0.92rem; color: var(--ink); }
 .evento-linha-info { font-size: 0.76rem; color: var(--ink2); margin-top: 0.15rem; }
+.evento-linha-endereco {
+  display: flex; align-items: center; gap: 0.35rem; margin-top: 0.3rem; flex-wrap: wrap;
+}
+.evento-linha-endereco-texto { font-size: 0.76rem; color: var(--ink2); overflow-wrap: anywhere; }
+.botao-icone-mini {
+  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.botao-icone-mini:hover { border-color: var(--teal); color: var(--ink); background: var(--teal-dim); }
+.etiqueta-endereco-diferente {
+  font-size: 0.68rem; font-weight: 600; color: #96702F; background: var(--gold-dim);
+  padding: 0.15rem 0.5rem; border-radius: 999px;
+}
+
+/* campo "Local" do modal, com ações de copiar/Waze ao lado */
+.linha-campo-com-acoes { display: flex; gap: 0.5rem; align-items: center; }
+.linha-campo-com-acoes input { flex: 1; }
+.botao-icone-campo {
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface2); color: var(--ink2);
+  font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+}
+.botao-icone-campo:hover { border-color: var(--teal); color: var(--ink); background: var(--teal-dim); }
+.comparacao-endereco { font-size: 0.78rem; font-weight: 600; margin: 0.4rem 0 0; }
+.comparacao-endereco.bate { color: var(--teal-deep); }
+.comparacao-endereco.diferente { color: #96702F; }
 
 .bloqueio-linha {
   display: flex; align-items: flex-start; gap: 0.7rem;
@@ -834,7 +863,12 @@ textarea { resize: vertical; font-family: 'Montserrat', sans-serif; }
       <p class="subtitulo" id="resultado-disponibilidade" style="margin:0 0 0.6rem"></p>
 
       <label for="evento-local">Local</label>
-      <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
+      <div class="linha-campo-com-acoes">
+        <input type="text" id="evento-local" placeholder="Endereço ou nome do local">
+        <button type="button" class="botao-icone-campo" id="botao-copiar-local" title="Copiar endereço">📋</button>
+        <button type="button" class="botao-icone-campo" id="botao-waze-local" title="Abrir no Waze">🧭</button>
+      </div>
+      <p class="comparacao-endereco oculto" id="comparacao-endereco-cliente"></p>
 
       <label>Responsáveis <span class="rotulo-dica">(pode marcar mais de uma)</span></label>
       <div class="opcoes-responsavel" id="opcoes-responsavel"></div>
@@ -1408,6 +1442,7 @@ document.getElementById('evento-cliente').addEventListener('change', (e) => {
   atualizarBotaoWhatsappCliente();
   if (e.target.value === '__novo__') {
     document.getElementById('nova-cliente-nome').focus();
+    atualizarComparacaoEndereco();
     return;
   }
   const cliente = clientesCacheAgenda.find(c => c.id === e.target.value);
@@ -1415,6 +1450,60 @@ document.getElementById('evento-cliente').addEventListener('change', (e) => {
   if (cliente && cliente.endereco && !campoLocal.value.trim()) {
     campoLocal.value = cliente.endereco;
   }
+  atualizarComparacaoEndereco();
+});
+
+// ---- ENDEREÇO: compara com o endereço de casa da cliente, copiar e Waze ----
+// Deixa claro, sem precisar ficar comparando de cabeça, se o local do
+// compromisso é o mesmo endereço cadastrado da cliente ou é outro
+// (atendimento fora de casa, num salão, na casa de outra pessoa etc).
+function normalizaEndereco(texto) {
+  return (texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[\s,.-]+/g, ' ').trim();
+}
+
+function atualizarComparacaoEndereco() {
+  const notaEl = document.getElementById('comparacao-endereco-cliente');
+  if (!notaEl) return;
+  const local = document.getElementById('evento-local').value.trim();
+  const clienteId = document.getElementById('evento-cliente').value;
+  const cliente = clientesCacheAgenda.find(c => c.id === clienteId);
+  const enderecoCasa = cliente && cliente.endereco ? cliente.endereco.trim() : '';
+
+  if (!local || !enderecoCasa) {
+    notaEl.classList.add('oculto');
+    return;
+  }
+  notaEl.classList.remove('oculto');
+  if (normalizaEndereco(local) === normalizaEndereco(enderecoCasa)) {
+    notaEl.className = 'comparacao-endereco bate';
+    notaEl.textContent = '✓ Mesmo endereço de casa da cliente';
+  } else {
+    notaEl.className = 'comparacao-endereco diferente';
+    notaEl.textContent = `⚠ Diferente do endereço de casa da cliente (${enderecoCasa})`;
+  }
+}
+document.getElementById('evento-local').addEventListener('input', atualizarComparacaoEndereco);
+
+async function copiarTexto(texto) {
+  if (!texto) { toast('Nada pra copiar ainda.', 'erro'); return; }
+  try {
+    await navigator.clipboard.writeText(texto);
+    toast('Endereço copiado!', 'sucesso');
+  } catch (e) {
+    toast('Não consegui copiar — copie manualmente.', 'erro');
+  }
+}
+
+function abrirWaze(endereco) {
+  if (!endereco) { toast('Nenhum endereço pra abrir.', 'erro'); return; }
+  window.open(`https://waze.com/ul?q=${encodeURIComponent(endereco)}&navigate=yes`, '_blank');
+}
+
+document.getElementById('botao-copiar-local').addEventListener('click', () => {
+  copiarTexto(document.getElementById('evento-local').value.trim());
+});
+document.getElementById('botao-waze-local').addEventListener('click', () => {
+  abrirWaze(document.getElementById('evento-local').value.trim());
 });
 
 // ---- RESPONSÁVEIS (Tami e/ou Stefania e/ou outras — pode marcar várias) ----
@@ -1860,16 +1949,35 @@ function renderizarPainelDia() {
   eventosDoDia.forEach(ev => {
     const cliente = clientesCacheAgenda.find(c => c.id === ev.cliente_id);
     const hora = new Date(ev.data_inicio).toTimeString().slice(0, 5);
+    const foraDeCasa = ev.local && cliente && cliente.endereco
+      && normalizaEndereco(ev.local) !== normalizaEndereco(cliente.endereco);
     const linha = document.createElement('div');
     linha.className = 'evento-linha evento-linha-prof-' + corPrincipalEvento(ev);
     linha.innerHTML = `
       <span class="evento-linha-hora">${hora}</span>
       <div class="evento-linha-corpo">
         <div class="evento-linha-titulo">${escaparHtmlAgenda(ev.titulo)}</div>
-        <div class="evento-linha-info">${cliente ? escaparHtmlAgenda(cliente.nome_noiva) + ' · ' : ''}${nomesResponsaveisEvento(ev).join(' e ') || 'Sem responsável'}${ev.local ? ' · ' + escaparHtmlAgenda(ev.local) : ''}</div>
+        <div class="evento-linha-info">${cliente ? escaparHtmlAgenda(cliente.nome_noiva) + ' · ' : ''}${nomesResponsaveisEvento(ev).join(' e ') || 'Sem responsável'}</div>
+        ${ev.local ? `
+        <div class="evento-linha-endereco">
+          <span class="evento-linha-endereco-texto">📍 ${escaparHtmlAgenda(ev.local)}</span>
+          <button type="button" class="botao-icone-mini botao-copiar-endereco-linha" title="Copiar endereço">📋</button>
+          <button type="button" class="botao-icone-mini botao-waze-endereco-linha" title="Abrir no Waze">🧭</button>
+          ${foraDeCasa ? '<span class="etiqueta-endereco-diferente">diferente de casa</span>' : ''}
+        </div>` : ''}
       </div>
     `;
     linha.addEventListener('click', () => abrirModalEvento('editar', ev, diaSelecionado));
+    if (ev.local) {
+      linha.querySelector('.botao-copiar-endereco-linha').addEventListener('click', (e) => {
+        e.stopPropagation();
+        copiarTexto(ev.local);
+      });
+      linha.querySelector('.botao-waze-endereco-linha').addEventListener('click', (e) => {
+        e.stopPropagation();
+        abrirWaze(ev.local);
+      });
+    }
     listaEl.appendChild(linha);
   });
 }
@@ -2409,6 +2517,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
   saldoEditadoManualmente = false;
   saldoDiretoProfissionalEditadoManualmente = false;
   document.getElementById('evento-saldo-direto-profissional').checked = true;
+  document.getElementById('comparacao-endereco-cliente').classList.add('oculto');
   valoresDivisaoProfissionais = {};
   eventoEmEdicao = evento;
 
@@ -2427,6 +2536,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     renderizarChecklistServicosEvento();
     calcularSinal();
     renderizarDivisaoProfissionais();
+    atualizarComparacaoEndereco();
   } else {
     document.getElementById('modal-evento-titulo').textContent = 'Editar compromisso';
     document.getElementById('botao-excluir-evento').classList.remove('oculto');
@@ -2444,6 +2554,7 @@ async function abrirModalEvento(modo, evento, diaClicado) {
     document.getElementById('evento-observacoes').value = evento.observacoes || '';
     definirResponsavelEventoNoFormulario(nomesResponsaveisEvento(evento));
     atualizarBotoesAvisarProfissionais();
+    atualizarComparacaoEndereco();
 
     // Carrega as outras clientes do grupo ANTES de calcular sinal/saldo —
     // haParticipantesNoGrupo() precisa saber se é um atendimento de grupo
